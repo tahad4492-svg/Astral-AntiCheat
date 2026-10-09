@@ -38,6 +38,20 @@ public final class PhaseCheck extends MovementCheck {
             return;
         }
         World world = data.player().getWorld();
+        State state = data.state(State.class, State::new);
+        boolean inside = insideSolid(world, data.player().getBoundingBox());
+        boolean wasInside = state.inside;
+        state.inside = inside;
+        if (inside && !wasInside && since(data.lastGhostBlock) > 20) {
+            Buffer buffer = data.buffer("phase.inside");
+            if (buffer.increase() > 1.0) {
+                buffer.set(0.5);
+                if (flag(data, "Inside", "moved into a solid block dist=" + format(distance))) {
+                    setback(data);
+                    return;
+                }
+            }
+        }
         Vector feetFrom = new Vector(data.lastX, data.lastY + 0.1, data.lastZ);
         Vector feetTo = new Vector(data.x, data.y + 0.1, data.z);
         Vector eyeFrom = new Vector(data.lastX, data.lastY + data.eyeHeight, data.lastZ);
@@ -57,9 +71,8 @@ public final class PhaseCheck extends MovementCheck {
 
     /** Returns the full solid block between the two points, or null when the path is clear. */
     private Block blocked(World world, Vector from, Vector to) {
-        if (isSolid(world.getBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ()))
-                || isSolid(world.getBlockAt(to.getBlockX(), to.getBlockY(), to.getBlockZ()))) {
-            // already inside a block (suffocating, sand, ...) - not a phase
+        if (isSolid(world.getBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ()))) {
+            // started inside a block (suffocating, sand, ...) - the player is only getting out
             return null;
         }
         Vector direction = to.clone().subtract(from);
@@ -74,6 +87,25 @@ public final class PhaseCheck extends MovementCheck {
         }
         Block hit = result.getHitBlock();
         return isSolid(hit) ? hit : null;
+    }
+
+    private static final class State {
+        boolean inside;
+    }
+
+    /** True when the (slightly shrunk) player box overlaps a full solid block. */
+    private static boolean insideSolid(World world, org.bukkit.util.BoundingBox box) {
+        org.bukkit.util.BoundingBox shrunk = box.clone().expand(-0.05, -0.1, -0.05);
+        for (int x = (int) Math.floor(shrunk.getMinX()); x <= (int) Math.floor(shrunk.getMaxX()); x++) {
+            for (int y = (int) Math.floor(shrunk.getMinY()); y <= (int) Math.floor(shrunk.getMaxY()); y++) {
+                for (int z = (int) Math.floor(shrunk.getMinZ()); z <= (int) Math.floor(shrunk.getMaxZ()); z++) {
+                    if (isSolid(world.getBlockAt(x, y, z))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean isSolid(Block block) {

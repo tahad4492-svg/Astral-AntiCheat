@@ -13,7 +13,8 @@ public final class Settings {
     public int maxPingCompensation;
     public int joinExemptTicks;
     public boolean exemptBedrock;
-    public boolean setbacks;
+    /** false = watch only (alerts + logs), true = also block cheats. */
+    public boolean mitigation;
 
     public boolean alertsByDefault;
     public long alertCooldownMs;
@@ -39,7 +40,7 @@ public final class Settings {
         maxPingCompensation = config.getInt("settings.max-ping-compensation", 600);
         joinExemptTicks = config.getInt("settings.join-exempt-ticks", 60);
         exemptBedrock = config.getBoolean("settings.exempt-bedrock-players", true);
-        setbacks = config.getBoolean("settings.setbacks", true);
+        mitigation = config.getBoolean("settings.mitigation", false);
 
         alertsByDefault = config.getBoolean("alerts.enabled-by-default", true);
         alertCooldownMs = config.getLong("alerts.cooldown-ms", 400L);
@@ -48,14 +49,14 @@ public final class Settings {
 
         decayIntervalSeconds = Math.max(1, config.getInt("violations.decay-interval-seconds", 30));
 
-        punishEnabled = config.getBoolean("punishments.enabled", true);
-        punishBroadcast = config.getBoolean("punishments.broadcast", true);
+        punishEnabled = config.getBoolean("punishments.enabled", false);
+        punishBroadcast = config.getBoolean("punishments.broadcast", false);
         defaultBanDuration = config.getString("punishments.default-ban-duration", "30d");
 
         freezeQuitCommands = config.getStringList("freeze.quit-commands");
         freezeAllowedCommands = config.getStringList("freeze.allowed-commands");
 
         logFile = config.getBoolean("logging.file", true);
-        logMemorySize = Math.max(10, config.getInt("logging.memory-size", 100));
+        logMemorySize = Math.max(10, config.getInt("logging.memory-size", 150));
     }
 }

@@ -21,8 +21,8 @@ import static me.mrtahadarvish.astral.util.MathUtil.format;
  * Click analysis on client ticks (immune to network jitter):
  * <ul>
  *   <li>CPS - clicking faster than a human for a whole second</li>
- *   <li>Pattern - an auto clicker / macro with a fixed delay repeats the same few delay
- *       sequences. Thresholds come from simulating human click timing on 20 TPS ticks.</li>
+ *   <li>Pattern - an auto clicker / macro with a fixed delay repeats the same few 8-click
+ *       rhythms. Thresholds come from simulating human click timing on 20 TPS ticks.</li>
  * </ul>
  */
 public final class AutoClickerCheck extends Check implements TickCheck {
@@ -39,7 +39,7 @@ public final class AutoClickerCheck extends Check implements TickCheck {
     protected void onLoad() {
         maxCps = option("max-cps", 22);
         cancelCps = option("cancel-cps", 30);
-        maxPatterns = option("max-patterns", 3);
+        maxPatterns = option("max-patterns", 9);
     }
 
     private static final class State {
@@ -86,8 +86,10 @@ public final class AutoClickerCheck extends Check implements TickCheck {
                 return;
             }
             int patterns = distinctPatterns(state.delays);
+            // a steady human at ~20 CPS can look rhythmic on 20 TPS ticks, so ask for more proof there
+            int needed = averageCps > 17.0 ? 4 : 2;
             if (patterns <= maxPatterns) {
-                if (++state.patternWindows >= 2) {
+                if (++state.patternWindows >= needed) {
                     state.patternWindows = 1;
                     flag(data, "Pattern", "patterns=" + patterns + " cps=" + format(averageCps, 1)
                             + " dev=" + format(MathUtil.deviation(state.delays), 2));
@@ -99,15 +101,17 @@ public final class AutoClickerCheck extends Check implements TickCheck {
     }
 
     /**
-     * Number of different 4-click delay sequences. A machine clicking with a fixed period repeats
-     * the same 1-3 sequences forever; human timing noise creates many more.
+     * Number of different 8-click delay sequences. Any clicker with a fixed delay produces a
+     * "Sturmian" sequence on 20 TPS ticks, which has at most 9 different 8-click sequences.
+     * Human timing noise creates far more (simulated: 0% of human windows below 10 except
+     * extremely steady 20 CPS clicking).
      */
     private static int distinctPatterns(Deque<Integer> delays) {
         Integer[] values = delays.toArray(new Integer[0]);
         Set<Long> patterns = new HashSet<>();
-        for (int i = 0; i + 4 <= values.length; i++) {
+        for (int i = 0; i + 8 <= values.length; i++) {
             long key = 0L;
-            for (int j = 0; j < 4; j++) {
+            for (int j = 0; j < 8; j++) {
                 key = key * 16L + Math.min(15, values[i + j]);
             }
             patterns.add(key);

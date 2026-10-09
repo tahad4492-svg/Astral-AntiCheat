@@ -106,7 +106,7 @@ public final class ViolationManager {
 
     /** Teleports a player back to the last legit position (movement mitigation). */
     public void setback(PlayerData data) {
-        if (!plugin.settings().setbacks) {
+        if (!plugin.settings().mitigation) {
             return;
         }
         Player player = data.player();

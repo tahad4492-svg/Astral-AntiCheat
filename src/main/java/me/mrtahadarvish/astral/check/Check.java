@@ -48,7 +48,7 @@ public abstract class Check implements Listener {
         alertVl = section.getDouble("alert-vl", 1.0);
         mitigate = section.getBoolean("mitigate", true);
         mitigateVl = section.getDouble("mitigate-vl", 0.0);
-        punish = section.getBoolean("punish", true);
+        punish = section.getBoolean("punish", false);
         punishVl = section.getDouble("punish-vl", 20.0);
         punishCommands = section.getStringList("punish-commands");
         decay = section.getDouble("decay", 1.0);
@@ -143,8 +143,9 @@ public abstract class Check implements Listener {
         return alertVl;
     }
 
+    /** True when this check may block cheats (also needs settings.mitigation, off = watch only). */
     public boolean mitigate() {
-        return mitigate;
+        return mitigate && plugin.settings().mitigation;
     }
 
     public double mitigateVl() {

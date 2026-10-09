@@ -1,5 +1,5 @@
 # =====================================================================
-#            MrTahaDarvish's AntiCheat (Astral) - messages
+#                    Astral AntiCheat - messages
 #   Colors: legacy & codes (&a, &l ...) and hex colors (&#00E5FF)
 # =====================================================================
 
@@ -35,26 +35,26 @@ verbose: "&8[&7V&8] &7%player% &8» &f%check% &8(&7%type%&8) &7%debug% &8(&7vl %
 # Sent to everyone when a player is punished (punishments.broadcast)
 punish-broadcast:
   - "&8&m                                                  "
-  - " &#00E5FF&lMrTahaDarvish's AntiCheat"
+  - " &#00E5FF&lAstral AntiCheat"
   - " &f%player% &7was removed for &cUnfair Advantage&7."
   - "&8&m                                                  "
 punish-staff: "%prefix%&c%player% &7was punished for &f%check% &8(&7vl %vl%&8)"
 
 kick-screen:
-  - "&#00E5FF&lMrTahaDarvish's AntiCheat"
+  - "&#00E5FF&lAstral AntiCheat"
   - ""
   - "&cYou have been kicked."
   - "&7Reason: &f%reason%"
   - ""
-  - "&8Astral AntiCheat"
+  - "&8by MrTahaDarvish"
 ban-screen:
-  - "&#00E5FF&lMrTahaDarvish's AntiCheat"
+  - "&#00E5FF&lAstral AntiCheat"
   - ""
   - "&cYou are banned from this server."
   - "&7Reason: &f%reason%"
   - "&7Expires: &f%expires%"
   - ""
-  - "&8Astral AntiCheat"
+  - "&8by MrTahaDarvish"
 
 kicked: "%prefix%&aKicked &f%player%&a. &7(%reason%)"
 banned: "%prefix%&aBanned &f%player% &afor &f%duration%&a. &7(%reason%)"

@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-/** Writes every flag and punishment to plugins/MrTahaDarvishAntiCheat/logs/&lt;date&gt;.log (async). */
+/** Writes every flag and punishment to plugins/Astral/logs/&lt;date&gt;.log (async). */
 public final class LogManager {
 
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");

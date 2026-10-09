@@ -117,6 +117,12 @@ public final class PlayerData {
     private final int[] clickWindow = new int[20];
     private int clickWindowIndex;
     public int placedThisTick, brokenThisTick, inventoryClicksThisTick, slotChangesThisTick;
+    /** Attacks, item uses, block / entity interactions and dig starts in the current client tick. */
+    public int actionsThisTick;
+    /** PlayerMoveEvents (movement packets) in the current client tick. Vanilla sends one at most. */
+    public int movesThisTick;
+    /** Real client protocol (ViaVersion aware), looked up once. -1 = not looked up yet. */
+    public int protocol = -1;
     public boolean attackedBeforeSlotChange;
     public int placeLockUntil = NEVER;
     public boolean digging;

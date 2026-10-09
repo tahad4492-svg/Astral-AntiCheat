@@ -4,6 +4,7 @@ import me.mrtahadarvish.astral.AstralAntiCheat;
 import me.mrtahadarvish.astral.check.combat.AimCheck;
 import me.mrtahadarvish.astral.check.combat.AutoBlockCheck;
 import me.mrtahadarvish.astral.check.combat.CriticalsCheck;
+import me.mrtahadarvish.astral.check.combat.CrystalAuraCheck;
 import me.mrtahadarvish.astral.check.combat.HitboxCheck;
 import me.mrtahadarvish.astral.check.combat.KillAuraCheck;
 import me.mrtahadarvish.astral.check.combat.ReachCheck;
@@ -26,6 +27,7 @@ import me.mrtahadarvish.astral.check.movement.SpeedCheck;
 import me.mrtahadarvish.astral.check.movement.SprintCheck;
 import me.mrtahadarvish.astral.check.movement.StepCheck;
 import me.mrtahadarvish.astral.check.movement.TimerCheck;
+import me.mrtahadarvish.astral.check.player.BadPacketsCheck;
 import me.mrtahadarvish.astral.check.player.ClientBrandCheck;
 import me.mrtahadarvish.astral.check.player.FastBowCheck;
 import me.mrtahadarvish.astral.check.player.InventoryMoveCheck;
@@ -81,8 +83,10 @@ public final class CheckManager {
         add(new CriticalsCheck(plugin));
         add(new VelocityCheck(plugin));
         add(new AimCheck(plugin));
+        add(new CrystalAuraCheck(plugin));
         // player
         add(new InventoryMoveCheck(plugin));
+        add(new BadPacketsCheck(plugin));
         add(new FastBowCheck(plugin));
         add(new ClientBrandCheck(plugin));
         // world

@@ -23,11 +23,12 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * MrTahaDarvish's AntiCheat (Astral) for Paper 1.21.11.
+ * Astral anti-cheat for Paper 1.21.11, by MrTahaDarvish.
  */
 public final class AstralAntiCheat extends JavaPlugin {
 
-    public static final String DISPLAY_NAME = "MrTahaDarvish's AntiCheat";
+    public static final String DISPLAY_NAME = "Astral";
+    public static final String AUTHOR = "MrTahaDarvish";
 
     private Settings settings;
     private Messages messages;
@@ -91,6 +92,7 @@ public final class AstralAntiCheat extends JavaPlugin {
         Bukkit.getConsoleSender().sendMessage(Text.color(" &#00E5FF&l" + DISPLAY_NAME + " &7v" + getPluginMeta().getVersion()));
         Bukkit.getConsoleSender().sendMessage(Text.color(" &7Loaded &f" + checks.all().size() + " &7checks &8(&a"
                 + checks.enabledCount() + " enabled&8) &7for &f" + Bukkit.getName() + " " + Bukkit.getMinecraftVersion()));
+        Bukkit.getConsoleSender().sendMessage(Text.color(" &7Mode: " + (settings.mitigation ? "&cBLOCK &7(cheats are blocked)" : "&aWATCH &7(alerts only, nobody is kicked or blocked)")));
         Bukkit.getConsoleSender().sendMessage(Text.color(" &7Bypass permission: &fastral.bypass &8| &7Command: &f/astral"));
         Bukkit.getConsoleSender().sendMessage(Text.color("&8&m                                                  "));
     }

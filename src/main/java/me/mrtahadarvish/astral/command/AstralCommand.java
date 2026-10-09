@@ -34,7 +34,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * /astral - every staff command of MrTahaDarvish's AntiCheat.
+ * /astral - every staff command of Astral.
  */
 public final class AstralCommand implements TabExecutor {
 
@@ -206,9 +206,10 @@ public final class AstralCommand implements TabExecutor {
             return;
         }
         send(sender, line());
-        send(sender, " &#00E5FF&l" + AstralAntiCheat.DISPLAY_NAME + " &8(&7Astral&8)");
+        send(sender, " &#00E5FF&l" + AstralAntiCheat.DISPLAY_NAME + " &7AntiCheat &8by &f" + AstralAntiCheat.AUTHOR);
         send(sender, " &7Plugin version: &f" + plugin.getPluginMeta().getVersion());
-        send(sender, " &7Author: &fMrTahaDarvish");
+        send(sender, " &7Author: &f" + AstralAntiCheat.AUTHOR);
+        send(sender, " &7Mode: " + (plugin.settings().mitigation ? "&cBLOCK" : "&aWATCH &7(alerts only)"));
         send(sender, " &7Server: &f" + Bukkit.getName() + " " + Bukkit.getMinecraftVersion() + " &8(" + Bukkit.getVersion() + ")");
         send(sender, " &7Server protocol: &f" + ClientUtil.serverProtocol());
         send(sender, " &7Checks: &f" + plugin.checks().all().size() + " loaded &8(&a" + plugin.checks().enabledCount() + " enabled&8)");

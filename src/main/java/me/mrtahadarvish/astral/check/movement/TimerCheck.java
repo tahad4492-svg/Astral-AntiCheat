@@ -3,6 +3,7 @@ package me.mrtahadarvish.astral.check.movement;
 import me.mrtahadarvish.astral.AstralAntiCheat;
 import me.mrtahadarvish.astral.check.MovementCheck;
 import me.mrtahadarvish.astral.data.PlayerData;
+import me.mrtahadarvish.astral.util.Clock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
@@ -47,7 +48,7 @@ public final class TimerCheck extends MovementCheck {
     @Override
     protected void handle(PlayerData data) {
         State state = data.state(State.class, State::new);
-        long now = System.nanoTime();
+        long now = Clock.nanos();
         if (state.lastTick == 0L) {
             state.lastTick = now;
             state.windowStart = now;

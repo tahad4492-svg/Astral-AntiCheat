@@ -39,6 +39,9 @@ public final class SpeedCheck extends MovementCheck {
 
     private static final class State {
         double lastBase = 0.13;
+        /** Speed of the last tick, capped to what was allowed (so cheats can not build on their own speed). */
+        double allowed;
+        boolean allowedValid;
     }
 
     @Override
@@ -52,12 +55,14 @@ public final class SpeedCheck extends MovementCheck {
 
         if (exempt(data) || data.inLiquid || since(data.lastLiquid) < 6 || data.inWeb
                 || data.climbing || since(data.lastSlime) < 5 || since(data.lastBed) < 5) {
+            state.allowedValid = false;
             return;
         }
 
         // ---------------------------------------------------------------- A: speed limit
         double momentumFriction = data.lastLastOnGround ? data.lastLastFriction * 0.91 : 0.91;
-        double momentum = data.lastDeltaXZ * momentumFriction;
+        double last = state.allowedValid ? Math.min(data.lastDeltaXZ, state.allowed) : data.lastDeltaXZ;
+        double momentum = last * momentumFriction;
         double acceleration;
         if (data.lastOnGround) {
             double f = data.lastFriction;
@@ -74,11 +79,18 @@ public final class SpeedCheck extends MovementCheck {
         }
 
         Buffer buffer = data.buffer("speed");
+        state.allowed = data.deltaXZ;
+        state.allowedValid = true;
         if (data.deltaXZ > limit) {
             double excess = data.deltaXZ - limit;
+            if (excess < 0.15) {
+                // small but impossible gain: the next tick may only build on the allowed speed
+                state.allowed = limit;
+            }
             if (buffer.increase(excess > 0.1 ? 2.0 : 1.0) > maxBuffer) {
                 if (nearEntities(data.player())) {
                     buffer.reset();
+                    state.allowed = data.deltaXZ;
                 } else if (flag(data, "Limit", "speed=" + format(data.deltaXZ) + " limit=" + format(limit)
                         + " ground=" + data.lastOnGround + " f=" + format(data.lastFriction, 3))) {
                     setback(data);

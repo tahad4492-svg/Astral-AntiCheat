@@ -9,8 +9,8 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>MrTahaDarvish's AntiCheat</name>
-    <description>Astral - an advanced anti-cheat and anti-macro plugin for Paper 1.21.11</description>
+    <name>Astral</name>
+    <description>Astral - anti-cheat and anti-macro plugin for Paper 1.21.11 by MrTahaDarvish</description>
 
     <properties>
         <java.version>21</java.version>
@@ -33,10 +33,30 @@
             <version>${paper.version}</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- tests: simulated server + clients (legit and cheating) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.12.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>5.12.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.24.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
-        <finalName>MrTahaDarvishAntiCheat-${project.version}</finalName>
+        <finalName>Astral-${project.version}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -74,6 +94,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.3.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.3</version>
+                <configuration>
+                    <argLine>-XX:+EnableDynamicAgentLoading -Xshare:off -Xmx2g</argLine>
+                    <trimStackTrace>false</trimStackTrace>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -83,7 +83,8 @@ public final class FlightCheck extends MovementCheck {
             if (data.headBlocked && difference < 0.0) {
                 return;
             }
-            double weight = Math.abs(difference) > 0.1 ? 1.5 : 1.0;
+            // > 0.25 blocks away from gravity in one tick is never legit (air jump, jetpack, blink up)
+            double weight = Math.abs(difference) > 0.25 ? maxBuffer + 1.0 : Math.abs(difference) > 0.1 ? 1.5 : 1.0;
             if (buffer.increase(weight) > maxBuffer) {
                 if (BlockUtil.nearCollidable(data.player())) {
                     buffer.reset();

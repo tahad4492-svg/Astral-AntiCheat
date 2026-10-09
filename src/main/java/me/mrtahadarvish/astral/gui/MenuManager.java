@@ -89,7 +89,8 @@ public final class MenuManager implements Listener {
             menu.slots.add(player.getUniqueId());
             slot++;
         }
-        inventory.setItem(45, item(Material.BOOK, "&b" + AstralAntiCheat.DISPLAY_NAME,
+        inventory.setItem(45, item(Material.BOOK, "&b" + AstralAntiCheat.DISPLAY_NAME + " AntiCheat",
+                "&7Mode: " + (plugin.settings().mitigation ? "&cBLOCK" : "&aWATCH (alerts only)"),
                 "&7Version: &f" + plugin.getPluginMeta().getVersion(),
                 "&7Flags: &f" + plugin.violations().totalFlags(),
                 "&7Punishments: &f" + plugin.violations().totalPunishments()));
@@ -127,8 +128,8 @@ public final class MenuManager implements Listener {
         inventory.setItem(14, item(frozen ? Material.PACKED_ICE : Material.ICE, frozen ? "&bFrozen: YES" : "&7Frozen: NO",
                 "&7Freeze / unfreeze"));
         inventory.setItem(15, item(Material.CLOCK, "&bWatch CPS", "&7Show the CPS in your action bar"));
-        inventory.setItem(16, item(Material.IRON_DOOR, "&cKick", "&7Kick for Unfair Advantage"));
-        inventory.setItem(22, item(Material.BARRIER, "&4Ban", "&7Ban with the default duration"));
+        inventory.setItem(16, item(Material.PAPER, "&bViolations", "&7Violation level per check"));
+        inventory.setItem(22, item(Material.WRITABLE_BOOK, "&bLogs", "&7Every recent flag of the player"));
         inventory.setItem(18, item(Material.ARROW, "&7Back"));
         viewer.openInventory(inventory);
     }
@@ -240,11 +241,11 @@ public final class MenuManager implements Listener {
                     }
                     case 16 -> {
                         viewer.closeInventory();
-                        viewer.performCommand("astral kick " + name + " Unfair Advantage");
+                        viewer.performCommand("astral violations " + name);
                     }
                     case 22 -> {
                         viewer.closeInventory();
-                        viewer.performCommand("astral ban " + name + " " + plugin.settings().defaultBanDuration + " Unfair Advantage");
+                        viewer.performCommand("astral logs " + name);
                     }
                     case 18 -> openPlayers(viewer);
                     default -> {

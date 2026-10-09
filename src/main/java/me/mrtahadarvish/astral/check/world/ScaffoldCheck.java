@@ -3,6 +3,7 @@ package me.mrtahadarvish.astral.check.world;
 import me.mrtahadarvish.astral.AstralAntiCheat;
 import me.mrtahadarvish.astral.check.Check;
 import me.mrtahadarvish.astral.check.CheckCategory;
+import me.mrtahadarvish.astral.check.PacketOrder;
 import me.mrtahadarvish.astral.check.TickCheck;
 import me.mrtahadarvish.astral.check.combat.CombatUtil;
 import me.mrtahadarvish.astral.data.Buffer;
@@ -31,6 +32,7 @@ import java.util.List;
  *   <li>Face - clicking a block face that faces away from the player (impossible to see)</li>
  *   <li>Rotation - the crosshair never pointed at the clicked block (checked on the next tick
  *       with every rotation between the two ticks)</li>
+ *   <li>Post - the block was placed after the movement packet (silent rotations)</li>
  * </ul>
  */
 public final class ScaffoldCheck extends Check implements TickCheck {
@@ -60,6 +62,18 @@ public final class ScaffoldCheck extends Check implements TickCheck {
         Block placed = event.getBlockPlaced();
         if (against.equals(placed)) {
             return;
+        }
+
+        // placed after the movement packet of the tick: silent rotation scaffold / tower
+        if (PacketOrder.isPost(data)) {
+            Buffer buffer = data.buffer("scaffold.post");
+            if (buffer.increase() > 1.0) {
+                buffer.set(0.5);
+                if (fail(data, "Post", "block placed after the movement packet (silent rotations)")) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
         }
 
         if (against.getType().isAir()) {

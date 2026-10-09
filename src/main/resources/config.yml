@@ -1,22 +1,34 @@
 # =====================================================================
-#              MrTahaDarvish's AntiCheat  (Astral)  - Paper 1.21.11
+#                     Astral AntiCheat - Paper 1.21.11
 # =====================================================================
-#  Every check has the same base options:
+#  WATCH MODE (default)
+#  Astral only WATCHES. Nobody is kicked, banned, set back or blocked.
+#  Staff with astral.alerts get an alert for every cheat, and every flag
+#  is written to plugins/Astral/logs/<date>.log. Use /astral info,
+#  /astral logs and /astral gui to see who is cheating.
+#
+#  Want Astral to also block cheats later? Set settings.mitigation: true.
+#  Want automatic punishments? Set punishments.enabled: true and give a
+#  check "punish: true" + punish-commands.
+#
+#  Every check has:
 #    enabled          - turn the check on / off  (also: /astral toggle <check>)
 #    alert-vl         - staff only get an alert once the violation level (VL) reaches this
-#    mitigate         - block the cheat (cancel hit / setback / cancel block / damage)
-#    mitigate-vl      - VL needed before mitigation starts (0 = block from the first flag)
-#    punish           - run punish-commands when punish-vl is reached
+#    mitigate         - block this cheat (only used when settings.mitigation is true)
+#    mitigate-vl      - VL needed before blocking starts
+#    punish           - run punish-commands at punish-vl (only when punishments.enabled is true)
 #    punish-vl        - VL needed to punish
 #    punish-commands  - console commands. Placeholders: %player% %uuid% %check% %type% %vl% %ping%
 #    decay            - VL removed from the player every "violations.decay-interval-seconds"
 #
-#  Players with the permission  astral.bypass  are NEVER checked, flagged,
-#  set back or blocked.  astral.bypass.<check>  bypasses one check only
-#  (example: astral.bypass.reach).  /astral bypass <player> toggles it in-game.
+#  Players with the permission astral.bypass are NEVER checked or flagged.
+#  astral.bypass.<check> bypasses one check (example: astral.bypass.reach).
+#  /astral bypass <player> toggles it in-game.
 # =====================================================================
 
 settings:
+  # false = WATCH ONLY (alerts + logs). true = also block cheats (cancel hits, setbacks, cancel blocks...).
+  mitigation: false
   # Skip checks while the server is lagging (prevents false flags)
   lag-protection:
     enabled: true
@@ -25,12 +37,10 @@ settings:
   max-combat-ping: 800
   # Highest ping (ms) used for lag compensation in reach / hitbox checks
   max-ping-compensation: 600
-  # Ticks a player is ignored after joining / respawning / changing world
+  # Ticks a player is ignored after joining
   join-exempt-ticks: 60
   # Skip Bedrock players (Geyser / Floodgate) - their movement is translated
   exempt-bedrock-players: true
-  # Use setbacks (teleport back to the last legit position) for movement checks
-  setbacks: true
 
 alerts:
   # Staff with astral.alerts have alerts turned on when they join
@@ -47,10 +57,11 @@ violations:
   decay-interval-seconds: 30
 
 punishments:
-  enabled: true
+  # Automatic punishments. OFF: Astral never kicks or bans anyone by itself.
+  enabled: false
   # Broadcast the punish message (messages.yml -> punish-broadcast) to everyone
-  broadcast: true
-  # Default ban length used by /astral ban when no time is given (e.g. 7d, 12h, 30m, perm)
+  broadcast: false
+  # Default ban length used by the manual /astral ban command (e.g. 7d, 12h, 30m, perm)
   default-ban-duration: "30d"
 
 freeze:
@@ -60,10 +71,10 @@ freeze:
   allowed-commands: ["/msg", "/r", "/tell", "/w", "/reply", "/helpop"]
 
 logging:
-  # Write every flag to plugins/MrTahaDarvishAntiCheat/logs/<date>.log
+  # Write every flag to plugins/Astral/logs/<date>.log
   file: true
   # Amount of flags remembered per player for /astral logs
-  memory-size: 100
+  memory-size: 150
 
 # =====================================================================
 #                               CHECKS
@@ -76,9 +87,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Reach)"]
+    punish-commands: []
     decay: 2.0
     # Extra blocks allowed on top of the vanilla attack range
     tolerance: 0.1
@@ -90,9 +101,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Hitbox)"]
+    punish-commands: []
     decay: 2.0
     # Extra hitbox expansion allowed (blocks)
     margin: 0.1
@@ -103,16 +114,16 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Unfair Advantage (KillAura)"]
+    punish-commands: []
     decay: 1.5
-    # Detection types
     multi: true       # hits 2+ entities in the same tick
     post: true        # attack sent after the movement packet (silent rotation auras)
     no-swing: true    # attacks without swinging the arm
     walls: true       # attacks through solid walls
-    # When flagged, all attacks of the player are cancelled for this many ticks
+    switch: true      # switching between targets that are far apart instantly
+    # When blocking is on: attacks of a flagged player are cancelled for this many ticks
     block-attacks-ticks: 60
 
   autoblock:
@@ -120,9 +131,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Unfair Advantage (AutoBlock)"]
+    punish-commands: []
     decay: 1.5
 
   criticals:
@@ -130,9 +141,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Unfair Advantage (Criticals)"]
+    punish-commands: []
     decay: 1.5
 
   velocity:
@@ -140,9 +151,9 @@ checks:
     alert-vl: 3.0
     mitigate: false
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Unfair Advantage (Velocity)"]
+    punish-commands: []
     decay: 1.0
     # Minimum part of the vertical knockback the player has to take (0.0 - 1.0)
     min-vertical: 0.98
@@ -151,16 +162,26 @@ checks:
 
   aim:
     enabled: true
-    alert-vl: 5.0
+    alert-vl: 3.0
     mitigate: false
     mitigate-vl: 0.0
     punish: false
     punish-vl: 40
-    punish-commands: ["astral kick %player% Unfair Advantage (Aim)"]
+    punish-commands: []
     decay: 2.0
     gcd: true          # rotations that do not match any real mouse sensitivity
     robotic: true      # perfectly repeated rotation steps (aimbots / rotation auras)
-    snap: true         # snap to target and back in two ticks (silent aim)
+    silent-aim: true   # turns to the target for the hit and straight back (silent aim / silent rotations)
+
+  crystalaura:
+    enabled: true
+    alert-vl: 2.0
+    mitigate: true
+    mitigate-vl: 0.0
+    punish: false
+    punish-vl: 20
+    punish-commands: []
+    decay: 1.5
 
   # ------------------------------ MOVEMENT -----------------------------
   flight:
@@ -168,9 +189,9 @@ checks:
     alert-vl: 3.0
     mitigate: true
     mitigate-vl: 2.0
-    punish: true
+    punish: false
     punish-vl: 40
-    punish-commands: ["astral kick %player% Unfair Advantage (Flight)"]
+    punish-commands: []
     decay: 3.0
     # Allowed error of the gravity prediction (blocks / tick)
     tolerance: 0.005
@@ -181,9 +202,9 @@ checks:
     alert-vl: 3.0
     mitigate: true
     mitigate-vl: 2.0
-    punish: true
+    punish: false
     punish-vl: 40
-    punish-commands: ["astral kick %player% Unfair Advantage (Speed)"]
+    punish-commands: []
     decay: 3.0
     tolerance: 0.01
     buffer: 4.0
@@ -193,11 +214,11 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (NoFall)"]
+    punish-commands: []
     decay: 2.0
-    # Deal the fall damage the cheater tried to avoid
+    # When blocking is on: deal the fall damage the cheater tried to avoid
     apply-damage: true
 
   timer:
@@ -205,9 +226,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 1.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Timer)"]
+    punish-commands: []
     decay: 2.0
     # How far ahead (ms) a client may get before flagging
     max-balance: 150
@@ -219,9 +240,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Step)"]
+    punish-commands: []
     decay: 2.0
 
   jesus:
@@ -229,9 +250,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 1.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Jesus)"]
+    punish-commands: []
     decay: 2.0
 
   fastclimb:
@@ -239,9 +260,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 1.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (FastClimb)"]
+    punish-commands: []
     decay: 2.0
 
   elytrafly:
@@ -249,9 +270,9 @@ checks:
     alert-vl: 3.0
     mitigate: true
     mitigate-vl: 2.0
-    punish: true
+    punish: false
     punish-vl: 30
-    punish-commands: ["astral kick %player% Unfair Advantage (ElytraFly)"]
+    punish-commands: []
     decay: 2.0
     # Highest legit elytra speed in blocks per tick (vanilla dive ~3.9)
     max-speed: 4.3
@@ -261,9 +282,9 @@ checks:
     alert-vl: 3.0
     mitigate: true
     mitigate-vl: 2.0
-    punish: true
+    punish: false
     punish-vl: 30
-    punish-commands: ["astral kick %player% Unfair Advantage (NoSlow)"]
+    punish-commands: []
     decay: 2.0
 
   sprint:
@@ -271,9 +292,9 @@ checks:
     alert-vl: 3.0
     mitigate: true
     mitigate-vl: 2.0
-    punish: true
+    punish: false
     punish-vl: 30
-    punish-commands: ["astral kick %player% Unfair Advantage (OmniSprint)"]
+    punish-commands: []
     decay: 2.0
 
   phase:
@@ -281,9 +302,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Phase)"]
+    punish-commands: []
     decay: 2.0
 
   boatfly:
@@ -291,9 +312,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 1.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (BoatFly)"]
+    punish-commands: []
     decay: 2.0
 
   # ------------------------------ PLAYER -------------------------------
@@ -302,9 +323,21 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (InventoryMove)"]
+    punish-commands: []
+    decay: 2.0
+
+  # Actions after the movement packet (auto pot / silent rotations) and more than one movement
+  # packet per tick (rotate-act-rotate back, blink). Vanilla clients never do either.
+  badpackets:
+    enabled: true
+    alert-vl: 2.0
+    mitigate: true
+    mitigate-vl: 0.0
+    punish: false
+    punish-vl: 25
+    punish-commands: []
     decay: 2.0
 
   fastbow:
@@ -312,9 +345,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Unfair Advantage (FastBow)"]
+    punish-commands: []
     decay: 2.0
     max-shots-per-second: 6
 
@@ -327,9 +360,9 @@ checks:
     punish-vl: 1
     punish-commands: []
     decay: 0.0
-    # Client brands (contains, lower-case) that get kicked
+    # Client brands (contains, lower-case) that are reported to staff
     blocked-brands: ["wurst", "meteor", "aristois", "impact", "liquidbounce", "future", "rusherhack", "inertia", "sigma", "vape", "boze", "thunderhack", "nursultan", "prestige", "bleachhack", "coffee"]
-    # Plugin channels (contains, lower-case) that get kicked
+    # Plugin channels (contains, lower-case) that are reported to staff
     blocked-channels: ["wurst", "meteor-client", "aristois", "liquidbounce", "rusherhack", "bleachhack", "boze"]
 
   # ------------------------------ WORLD --------------------------------
@@ -338,9 +371,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (FastBreak)"]
+    punish-commands: []
     decay: 2.0
     # Lowest allowed (real break time / vanilla break time)
     min-ratio: 0.75
@@ -350,9 +383,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Unfair Advantage (Nuker)"]
+    punish-commands: []
     decay: 2.0
     max-blocks-per-second: 22
     # Highest angle (degrees) between the look direction and a broken block
@@ -363,9 +396,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (BlockReach)"]
+    punish-commands: []
     decay: 2.0
     tolerance: 0.3
 
@@ -374,9 +407,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (GhostHand)"]
+    punish-commands: []
     decay: 2.0
 
   fastplace:
@@ -384,9 +417,9 @@ checks:
     alert-vl: 3.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (FastPlace)"]
+    punish-commands: []
     decay: 2.0
     max-blocks-per-second: 25
 
@@ -395,9 +428,9 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Scaffold)"]
+    punish-commands: []
     decay: 2.0
 
   xray:
@@ -417,28 +450,28 @@ checks:
   # ------------------------------ MACROS -------------------------------
   autoclicker:
     enabled: true
-    alert-vl: 3.0
-    mitigate: true
-    mitigate-vl: 0.0
-    punish: true
-    punish-vl: 30
-    punish-commands: ["astral kick %player% Unfair Advantage (AutoClicker)"]
-    decay: 2.0
-    # Highest legit clicks per second (held for a whole second)
-    max-cps: 22
-    # Above this CPS every attack is cancelled
-    cancel-cps: 30
-    # Auto clickers repeat the same few click rhythms. Humans never use 3 or fewer.
-    max-patterns: 3
-
-  autototem:
-    enabled: true
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
+    punish-vl: 30
+    punish-commands: []
+    decay: 2.0
+    # Highest legit clicks per second (held for a whole second)
+    max-cps: 22
+    # When blocking is on: above this CPS every attack is cancelled
+    cancel-cps: 30
+    # Fixed-delay auto clickers repeat at most 9 different 8-click rhythms. Humans use far more.
+    max-patterns: 9
+
+  autototem:
+    enabled: true
+    alert-vl: 1.0
+    mitigate: true
+    mitigate-vl: 0.0
+    punish: false
     punish-vl: 15
-    punish-commands: ["astral kick %player% Unfair Advantage (AutoTotem)"]
+    punish-commands: []
     decay: 1.0
     # A totem put in the off-hand through the inventory faster than this (ticks) after a pop is flagged
     min-ticks: 4
@@ -448,21 +481,21 @@ checks:
     alert-vl: 2.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Unfair Advantage (ChestStealer)"]
+    punish-commands: []
     decay: 2.0
     # Clicks with an identical delay in a row needed to flag
     min-sequence: 9
 
   hotbarmacro:
     enabled: true
-    alert-vl: 3.0
-    mitigate: true
+    alert-vl: 2.0
+    mitigate: false
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 25
-    punish-commands: ["astral kick %player% Unfair Advantage (Macro)"]
+    punish-commands: []
     decay: 2.0
 
   autofish:
@@ -472,7 +505,7 @@ checks:
     mitigate-vl: 0.0
     punish: false
     punish-vl: 10
-    punish-commands: ["astral kick %player% AFK fishing macros are not allowed"]
+    punish-commands: []
     decay: 0.5
 
   chat:
@@ -480,14 +513,14 @@ checks:
     alert-vl: 3.0
     mitigate: true
     mitigate-vl: 0.0
-    punish: true
+    punish: false
     punish-vl: 20
-    punish-commands: ["astral kick %player% Please do not spam"]
+    punish-commands: []
     decay: 2.0
     # Max messages allowed in "window-seconds"
     max-messages: 5
     window-seconds: 6
-    # Block the same message sent twice within this many seconds (0 = off)
+    # Report the same message sent twice within this many seconds (0 = off)
     duplicate-seconds: 20
     # Max commands per second
     max-commands-per-second: 5

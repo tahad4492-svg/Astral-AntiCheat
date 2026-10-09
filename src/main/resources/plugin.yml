@@ -1,8 +1,8 @@
-name: MrTahaDarvishAntiCheat
+name: Astral
 version: '${project.version}'
 main: me.mrtahadarvish.astral.AstralAntiCheat
 api-version: '1.21.11'
-description: "MrTahaDarvish's AntiCheat (Astral) - advanced cheat and macro protection for Paper 1.21.11"
+description: "Astral - anti-cheat and anti-macro for Paper 1.21.11 (watch mode: alerts staff, never kicks or bans by itself)"
 author: MrTahaDarvish
 prefix: Astral
 load: POSTWORLD
@@ -10,9 +10,9 @@ softdepend: [ViaVersion, ViaBackwards, floodgate, Geyser-Spigot, LuckPerms]
 
 commands:
   astral:
-    description: "Main command of MrTahaDarvish's AntiCheat"
+    description: "Main command of Astral"
     usage: "/astral help"
-    aliases: [astralac, anticheat, mtdac, ac]
+    aliases: [astralac, anticheat, ac]
 
 permissions:
   astral.*:

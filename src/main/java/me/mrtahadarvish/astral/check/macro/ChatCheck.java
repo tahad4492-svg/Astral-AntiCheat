@@ -5,6 +5,7 @@ import me.mrtahadarvish.astral.AstralAntiCheat;
 import me.mrtahadarvish.astral.check.Check;
 import me.mrtahadarvish.astral.check.CheckCategory;
 import me.mrtahadarvish.astral.data.PlayerData;
+import me.mrtahadarvish.astral.util.Clock;
 import me.mrtahadarvish.astral.util.Text;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -58,7 +59,7 @@ public final class ChatCheck extends Check {
             return;
         }
         String message = Text.plain(event.message()).trim().toLowerCase(Locale.ROOT);
-        long now = System.currentTimeMillis();
+        long now = Clock.millis();
         ChatState state = states.computeIfAbsent(event.getPlayer().getUniqueId(), uuid -> new ChatState());
         String type = null;
         String debug = "";
@@ -106,7 +107,7 @@ public final class ChatCheck extends Check {
         if (!shouldCheck(data)) {
             return;
         }
-        long now = System.currentTimeMillis();
+        long now = Clock.millis();
         ChatState state = states.computeIfAbsent(event.getPlayer().getUniqueId(), uuid -> new ChatState());
         int count;
         synchronized (state) {

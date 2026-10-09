@@ -291,6 +291,8 @@ public final class MovementProcessor implements Listener {
         data.brokenThisTick = 0;
         data.inventoryClicksThisTick = 0;
         data.slotChangesThisTick = 0;
+        data.actionsThisTick = 0;
+        data.movesThisTick = 0;
         data.attackedBeforeSlotChange = false;
 
         Location location = player.getLocation();

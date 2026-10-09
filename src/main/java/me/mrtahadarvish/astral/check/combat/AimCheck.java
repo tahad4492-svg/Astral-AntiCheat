@@ -17,41 +17,45 @@ import static me.mrtahadarvish.astral.util.MathUtil.format;
  *   <li>GCD - a mouse turns the camera in steps of sensitivity^3 * 1.2 degrees. Rotations
  *       calculated by aimbots / auras do not share that step.</li>
  *   <li>Robotic - perfectly repeated rotation steps (smooth rotation auras).</li>
- *   <li>Snap - turning 40+ degrees to the target and back within two ticks (silent aim).</li>
+ *   <li>SilentAim - the rotation jumps to the target for the tick of the hit and then jumps
+ *       straight back to where the camera really is. A hand on a mouse never returns to the
+ *       exact same angle one tick after a flick.</li>
  * </ul>
  */
 public final class AimCheck extends Check implements TickCheck {
 
     private boolean gcd;
     private boolean robotic;
-    private boolean snap;
+    private boolean silentAim;
 
     public AimCheck(AstralAntiCheat plugin) {
-        super(plugin, "aim", "Aim", CheckCategory.COMBAT, "Inhuman rotations (aimbot, aim assist, rotation auras).");
+        super(plugin, "aim", "Aim", CheckCategory.COMBAT, "Inhuman rotations (aimbot, silent aim, rotation auras).");
     }
 
     @Override
     protected void onLoad() {
         gcd = option("gcd", true);
         robotic = option("robotic", true);
-        snap = option("snap", true);
+        silentAim = option("silent-aim", true);
     }
 
     private static final class State {
         int smoothTicks;
         int roboticTicks;
+        boolean attackedLastTick;
     }
 
     @Override
     public void onTick(PlayerData data) {
+        State state = data.state(State.class, State::new);
+        boolean attackedLastTick = state.attackedLastTick;
+        state.attackedLastTick = data.attacksThisTick > 0;
         if (!shouldCheck(data) || !data.inCombat() || data.skipMovement || data.inVehicle
                 || since(data.lastTeleport) < 20 || since(data.lastRespawn) < 20) {
             return;
         }
-        State state = data.state(State.class, State::new);
         float yaw = Math.abs(data.deltaYaw);
         float pitch = Math.abs(data.deltaPitch);
-        float lastYaw = Math.abs(data.lastDeltaYaw);
         float lastPitch = Math.abs(data.lastDeltaPitch);
 
         // cinematic camera (smooth zoom / optifine) creates fake inhuman rotations - ignore it
@@ -82,15 +86,21 @@ public final class AimCheck extends Check implements TickCheck {
             state.roboticTicks = 0;
         }
 
-        if (snap && data.clientTicks - data.lastAttackClientTick <= 2 && lastYaw > 40.0F && yaw > 40.0F
-                && Math.signum(data.deltaYaw) != Math.signum(data.lastDeltaYaw)
-                && Math.abs(data.deltaYaw + data.lastDeltaYaw) < 5.0F) {
-            Buffer buffer = data.buffer("aim.snap");
-            if (buffer.increase() > 1.0) {
-                buffer.set(0.5);
-                if (flag(data, "Snap", "out=" + format(data.lastDeltaYaw, 1) + " back=" + format(data.deltaYaw, 1))) {
-                    plugin.checks().lockCombat(data);
+        // lastDelta = turn towards the target, delta = turn of this tick. The hit happened in one
+        // of the two ticks (pre or post order). Silent aim turns back by almost exactly the same amount.
+        if (silentAim && (attackedLastTick || data.attacksThisTick > 0)) {
+            double in = Math.hypot(data.lastDeltaYaw, data.lastDeltaPitch);
+            double out = Math.hypot(data.deltaYaw, data.deltaPitch);
+            double rest = Math.hypot(data.lastDeltaYaw + data.deltaYaw, data.lastDeltaPitch + data.deltaPitch);
+            Buffer buffer = data.buffer("aim.silent");
+            if (in >= 8.0 && out >= in * 0.7 && rest <= in * 0.15) {
+                if (buffer.increase() > 1.0) {
+                    buffer.set(0.5);
+                    flag(data, "SilentAim", "turned " + format(in, 1) + " deg for the hit and " + format(out, 1)
+                            + " deg back (diff " + format(rest, 2) + ")");
                 }
+            } else {
+                buffer.decrease(0.05);
             }
         }
     }

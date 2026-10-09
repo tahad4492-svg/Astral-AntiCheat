@@ -12,7 +12,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageAbortEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 /**
@@ -34,6 +37,7 @@ public final class InteractionListener implements Listener {
             return;
         }
         data.attacksThisTick++;
+        data.actionsThisTick++;
         data.targetsThisTick.add(event.getAttacked().getEntityId());
         data.lastAttackTick = PlayerData.now();
         data.lastAttackClientTick = data.clientTicks;
@@ -43,6 +47,26 @@ public final class InteractionListener implements Listener {
         // a combat check flagged the player recently -> block every hit for a while
         if (PlayerData.now() < data.combatLockUntil && !data.isBypassing("killaura")) {
             event.setCancelled(true);
+        }
+    }
+
+    /** Item use, block clicks and dig starts - every one of them is an "action" packet. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInteract(PlayerInteractEvent event) {
+        if (event.getAction() == Action.PHYSICAL || event.getAction() == Action.LEFT_CLICK_AIR) {
+            return; // physical = pressure plates, left click air = fired by the arm swing itself
+        }
+        PlayerData data = plugin.data().get(event.getPlayer());
+        if (data != null) {
+            data.actionsThisTick++;
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInteractEntity(PlayerInteractEntityEvent event) {
+        PlayerData data = plugin.data().get(event.getPlayer());
+        if (data != null) {
+            data.actionsThisTick++;
         }
     }
 
