@@ -1,0 +1,118 @@
+name: MrTahaDarvishAntiCheat
+version: '${project.version}'
+main: me.mrtahadarvish.astral.AstralAntiCheat
+api-version: '1.21.11'
+description: "MrTahaDarvish's AntiCheat (Astral) - advanced cheat and macro protection for Paper 1.21.11"
+author: MrTahaDarvish
+prefix: Astral
+load: POSTWORLD
+softdepend: [ViaVersion, ViaBackwards, floodgate, Geyser-Spigot, LuckPerms]
+
+commands:
+  astral:
+    description: "Main command of MrTahaDarvish's AntiCheat"
+    usage: "/astral help"
+    aliases: [astralac, anticheat, mtdac, ac]
+
+permissions:
+  astral.*:
+    description: "Every Astral permission, INCLUDING bypass (be careful)."
+    default: false
+    children:
+      astral.admin: true
+      astral.bypass: true
+
+  astral.admin:
+    description: "All staff commands and alerts (does NOT include bypass)."
+    default: op
+    children:
+      astral.alerts: true
+      astral.verbose: true
+      astral.notify.punish: true
+      astral.command.help: true
+      astral.command.version: true
+      astral.command.version.others: true
+      astral.command.reload: true
+      astral.command.alerts: true
+      astral.command.verbose: true
+      astral.command.checks: true
+      astral.command.toggle: true
+      astral.command.info: true
+      astral.command.violations: true
+      astral.command.logs: true
+      astral.command.reset: true
+      astral.command.bypass: true
+      astral.command.kick: true
+      astral.command.ban: true
+      astral.command.unban: true
+      astral.command.freeze: true
+      astral.command.tp: true
+      astral.command.cps: true
+      astral.command.ping: true
+      astral.command.client: true
+      astral.command.gui: true
+      astral.command.stats: true
+      astral.command.debug: true
+
+  astral.bypass:
+    description: "Player is completely ignored by every check: never flagged, never set back, never blocked."
+    default: false
+
+  astral.alerts:
+    description: "Receive cheat alerts (flags)."
+    default: op
+  astral.verbose:
+    description: "Allowed to enable verbose mode (every single flag)."
+    default: op
+  astral.notify.punish:
+    description: "Get notified when Astral punishes a player."
+    default: op
+
+  astral.command.help:
+    default: true
+  astral.command.version:
+    default: true
+  astral.command.version.others:
+    default: op
+  astral.command.reload:
+    default: op
+  astral.command.alerts:
+    default: op
+  astral.command.verbose:
+    default: op
+  astral.command.checks:
+    default: op
+  astral.command.toggle:
+    default: op
+  astral.command.info:
+    default: op
+  astral.command.violations:
+    default: op
+  astral.command.logs:
+    default: op
+  astral.command.reset:
+    default: op
+  astral.command.bypass:
+    default: op
+  astral.command.kick:
+    default: op
+  astral.command.ban:
+    default: op
+  astral.command.unban:
+    default: op
+  astral.command.freeze:
+    default: op
+  astral.command.tp:
+    default: op
+  astral.command.cps:
+    default: op
+  astral.command.ping:
+    default: op
+  astral.command.client:
+    default: op
+  astral.command.gui:
+    default: op
+  astral.command.stats:
+    default: op
+  astral.command.debug:
+    default: op

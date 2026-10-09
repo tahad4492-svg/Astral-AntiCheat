@@ -1,0 +1,89 @@
+# =====================================================================
+#            MrTahaDarvish's AntiCheat (Astral) - messages
+#   Colors: legacy & codes (&a, &l ...) and hex colors (&#00E5FF)
+# =====================================================================
+
+prefix: "&8[&#00E5FF&lAstral&8] &r"
+
+no-permission: "%prefix%&cYou do not have permission to do that."
+player-only: "%prefix%&cOnly players can use this command."
+player-not-found: "%prefix%&cPlayer &f%player% &cwas not found."
+unknown-check: "%prefix%&cUnknown check &f%check%&c. Use &f/astral checks&c."
+unknown-subcommand: "%prefix%&cUnknown sub command. Use &f/astral help&c."
+reloaded: "%prefix%&aConfiguration reloaded in &f%time%ms&a."
+
+alerts-enabled: "%prefix%&aAlerts enabled. &7You will see every flag."
+alerts-disabled: "%prefix%&cAlerts disabled."
+verbose-enabled: "%prefix%&aVerbose enabled. &7You will see EVERY flag (no cooldown, no minimum VL)."
+verbose-disabled: "%prefix%&cVerbose disabled."
+
+# Alert sent to staff.  %player% %check% %type% %vl% %ping% %tps% %debug% %category%
+alert: "%prefix%&f%player% &7failed &#00E5FF%check% &8(&7%type%&8) &7x&c%vl% &8[&7%ping%ms&8]"
+alert-hover:
+  - "&#00E5FF&l%check% &8(&7%type%&8)"
+  - "&7%description%"
+  - ""
+  - "&7Category: &f%category%"
+  - "&7Violations: &c%vl%"
+  - "&7Ping: &f%ping%ms &8| &7TPS: &f%tps%"
+  - "&7Client: &f%client%"
+  - "&7Info: &f%debug%"
+  - ""
+  - "&eClick to teleport"
+verbose: "&8[&7V&8] &7%player% &8» &f%check% &8(&7%type%&8) &7%debug% &8(&7vl %vl%&8)"
+
+# Sent to everyone when a player is punished (punishments.broadcast)
+punish-broadcast:
+  - "&8&m                                                  "
+  - " &#00E5FF&lMrTahaDarvish's AntiCheat"
+  - " &f%player% &7was removed for &cUnfair Advantage&7."
+  - "&8&m                                                  "
+punish-staff: "%prefix%&c%player% &7was punished for &f%check% &8(&7vl %vl%&8)"
+
+kick-screen:
+  - "&#00E5FF&lMrTahaDarvish's AntiCheat"
+  - ""
+  - "&cYou have been kicked."
+  - "&7Reason: &f%reason%"
+  - ""
+  - "&8Astral AntiCheat"
+ban-screen:
+  - "&#00E5FF&lMrTahaDarvish's AntiCheat"
+  - ""
+  - "&cYou are banned from this server."
+  - "&7Reason: &f%reason%"
+  - "&7Expires: &f%expires%"
+  - ""
+  - "&8Astral AntiCheat"
+
+kicked: "%prefix%&aKicked &f%player%&a. &7(%reason%)"
+banned: "%prefix%&aBanned &f%player% &afor &f%duration%&a. &7(%reason%)"
+unbanned: "%prefix%&aUnbanned &f%player%&a."
+not-banned: "%prefix%&c%player% is not banned."
+
+bypass-enabled: "%prefix%&f%player% &anow bypasses the anticheat. &7(not flagged, not blocked)"
+bypass-disabled: "%prefix%&f%player% &cno longer bypasses the anticheat."
+bypass-list: "%prefix%&7Bypassing players: &f%list%"
+bypass-permission-note: "%prefix%&7Note: &f%player% &7also has the &fastral.bypass &7permission."
+
+check-enabled: "%prefix%&aCheck &f%check% &aenabled."
+check-disabled: "%prefix%&cCheck &f%check% &cdisabled."
+reset-player: "%prefix%&aReset all violations of &f%player%&a."
+reset-check: "%prefix%&aReset &f%check% &aviolations of &f%player%&a."
+reset-all: "%prefix%&aReset the violations of every online player."
+
+frozen: "%prefix%&f%player% &bis now frozen."
+unfrozen: "%prefix%&f%player% &ais no longer frozen."
+freeze-message:
+  - ""
+  - "&#00E5FF&lYOU ARE FROZEN"
+  - "&7A staff member wants to check you. &cDo NOT log out."
+  - ""
+freeze-quit: "%prefix%&c%player% &7logged out while frozen!"
+freeze-blocked-command: "%prefix%&cYou cannot use commands while frozen."
+
+teleported: "%prefix%&7Teleported to &f%player%&7."
+cps-start: "%prefix%&7Showing the CPS of &f%player% &7in your action bar. Run again to stop."
+cps-stop: "%prefix%&7Stopped showing CPS."
+debug-enabled: "%prefix%&aDebug for &f%check% &aenabled."
+debug-disabled: "%prefix%&cDebug for &f%check% &cdisabled."
