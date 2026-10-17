@@ -249,6 +249,80 @@ post-packet auras look exactly like they do on a real server.
 After a run the full table is written to `target/astral-test-report.md`.
 
 <!-- TEST-RESULTS -->
+**Result of the last run: 128 / 128 scenarios passed** (60 legit scenarios with zero flags and zero setbacks, 62 cheats caught, 6 mode / alert / config checks).
+
+| Cheat simulated | Result | Flagged as |
+|---|---|---|
+| Aimbot / aim assist (rotations without mouse steps) | PASS | Aim(GCD), Reach(Blatant), Reach(Distance) |
+| Air jump / jetpack | PASS | Flight(Ascend) |
+| Air strafe | PASS | Speed(Strafe) |
+| AirPlace (placing against air) | PASS | BlockReach(Place), Scaffold(Face) |
+| Attribute / mace swap after the hit | PASS | SilentSwap(SilentSwap) |
+| Aura without rotations (hits outside the crosshair) | PASS | Hitbox(Miss) |
+| Auto attribute swap (swap in the hit tick, swap back 2 ticks later), hits blocked after 11 hits, last 20 hits registered 0 | PASS | SilentSwap(AttributeSwap) |
+| Auto clicker 12.5 CPS fixed delay | PASS | AutoClicker(Pattern) |
+| Auto clicker 40 CPS | PASS | AutoClicker(CPS) |
+| Auto pot (use item after the movement packet) | PASS | BadPackets(Multi), BadPackets(PostUse) |
+| Auto stun slam (axe + mace in one tick), mace hits registered 0/6 | PASS | SilentSwap(SilentSwap), SilentSwap(Spam), SilentSwap(StunSlam) |
+| Auto stun slam (mace exactly 1 tick after the axe, every time) | PASS | SilentSwap(StunSlam) |
+| AutoBlock (hit while blocking) | PASS | AutoBlock(Shield) |
+| AutoFish (same reaction every bite) | PASS | AutoFish(Reaction) |
+| AutoTotem (totem back in 1 tick) | PASS | AutoTotem(Speed) |
+| Bhop speed x1.25 | PASS | Speed(Limit) |
+| Blink (movement held back, then sent at once) | PASS | BadPackets(Multi), Speed(Limit) |
+| BlockReach (7 blocks) | PASS | BlockReach(Break) |
+| Chest stealer (perfect 2 tick delay) | PASS | ChestStealer(Steal) |
+| Crystal aura (ID predict / instant break) | PASS | CrystalAura(Predict) |
+| ElytraFly (hovering) | PASS | ElytraFly(Hover) |
+| FastBow (20 arrows per second) | PASS | FastBow(Rate) |
+| FastBreak (4x speed mine) | PASS | FastBreak(Time) |
+| FastClimb (ladder) | PASS | FastClimb(Speed) |
+| FastPlace (a block every tick) | PASS | Scaffold(Face) |
+| Fly (hover) | PASS | Flight(Hover) |
+| Fly (vertical / creative fly) | PASS | Flight(Ascend) |
+| Fly / hover after jumping off the battle bus (300ms) | PASS | Flight(Hover) |
+| Fly / hover after jumping off the battle bus (50ms) | PASS | Flight(Hover) |
+| GhostHand (mining behind a wall) | PASS | GhostHand(Break) |
+| Glide / slow fall | PASS | Flight(Glide) |
+| Hacked client brand / channel | PASS | ClientBrand(Brand), ClientBrand(Channel) |
+| Hotbar spam (4 slots per tick) | PASS | SilentSwap(Spam) |
+| Inventory packets while attacking (auto armor / auto totem) | PASS | InventoryMove(Action), InventoryMove(Combo) |
+| InventoryMove (clicking while running) | PASS | InventoryMove(Input) |
+| Jesus (walking on water) | PASS | Flight(Hover), NoFall(GroundSpoof) |
+| Mace kill (fake 10 block fall before the hit), smashes registered 0/6 | PASS | BadPackets(Multi), Mace(FakeFall) |
+| Multi aura (2 targets per tick) | PASS | KillAura(Multi) |
+| NoFall (on-ground spoof) | PASS | NoFall(GroundSpoof) |
+| NoFall landing from the battle bus (300ms) | PASS | NoFall(GroundSpoof) |
+| NoFall landing from the battle bus (50ms) | PASS | NoFall(GroundSpoof) |
+| NoSlow (eating at full speed) | PASS | NoSlow(Item) |
+| NoSwing | PASS | KillAura(NoSwing) |
+| Nuker (3 blocks per tick) | PASS | Nuker(Multi) |
+| OmniSprint (sprinting backwards) | PASS | OmniSprint(Omni) |
+| Packet criticals | PASS | Criticals(Ground) |
+| Phase / NoClip through a wall | PASS | BadPackets(Multi), Phase(Clip), Speed(Limit) |
+| Reach 4.2 blocks | PASS | Reach(Distance) |
+| Rotation aura with constant steps | PASS | Aim(Robotic) |
+| Scaffold rotate-place-rotate back (extra rotation packet) | PASS | BadPackets(Multi), BlockReach(Place), Scaffold(Post) |
+| Scaffold with silent rotations (place after the movement packet) | PASS | BlockReach(Place), Scaffold(Post) |
+| Silent aim (flick to target and back) | PASS | Aim(SilentAim) |
+| Silent rotation aura (aim inside the movement packet) | PASS | Aim(SilentAim) |
+| Silent rotation aura (attack after movement) | PASS | Aim(SilentAim) |
+| Silent swap (switch, hit, switch back) | PASS | SilentSwap(SilentSwap) |
+| Silent swap in one tick: swaps cancelled 10/10, mace hits registered 0 | PASS | SilentSwap(SilentSwap) |
+| Slot swap after the movement packet | PASS | SilentSwap(Post) |
+| Speed x1.5 (ground) | PASS | Speed(Limit) |
+| Step (1 block) | PASS | Flight(HighJump), Step(Height) |
+| Switch aura (front/back every tick) | PASS | Aim(Robotic), KillAura(Switch) |
+| Timer 1.25x | PASS | Timer(Balance) |
+| Velocity / anti knockback | PASS | Velocity(Vertical) |
+| Mixed: Human vs aura user in one fight: only the aura user flagged | PASS | human: no flags / aura: Aim(SilentAim)  KillAura(Post) |
+| Mode: Watch mode: reach is flagged but the hits are NOT cancelled | PASS | Hitbox(Miss)  Reach(Blatant) |
+| Mode: Block mode (mitigation: true): reach hits cancelled, flyer pulled back down | PASS | Flight(Ascend) |
+| Alerts: 600 Fly flags in one minute -> 2 alert lines | PASS | lines=2 flags shown=311 |
+| Alerts: New cheat while flagging: reported at once, listed first | PASS | KillAura (silent rotations) |
+| Config: config.yml from Astral 1.0 updated to blocking + compact alerts, own values kept | PASS | mitigation=true compact=true |
+
+Legit scenarios (all with **no flags**; battle bus ones at 50 / 150 / 300 / 500 / 800 ms ping and with no setbacks): attribute swapping by hand (60 hits); building a wall and mining it; carried by plugin velocity, slow falling parachute; crystal PvP at human speed; double jump launch pad (flight toggle cancelled by the plugin); driving a boat a plugin lifts into the air; eating while walking; fast stun slams by hand (30 combos, 1-3 ticks); human PvP fight, attacker; human PvP fight, defender; ice tunnel jump boosting (123.73 blocks); inventory sorting + manual totem; mace smash after falling off a 9 block pillar; plugin turned gravity off, then on again mid-air; random wandering; riding the battle bus, jumping off, free fall; spectating the bus, survival mid-air; sprint jumping non stop; standing on a moving shulker bus floor, walking off; switching hotbar slots then hitting; teleported along the bus route, elytra drop; walking off a 26 block tower.
 
 > These are simulations of how cheat clients behave, not recordings of real clients on a
 > real server. They prove the checks react to those behaviours and stay quiet for normal
