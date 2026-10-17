@@ -2,7 +2,7 @@ name: Astral
 version: '${project.version}'
 main: me.mrtahadarvish.astral.AstralAntiCheat
 api-version: '1.21.11'
-description: "Astral - anti-cheat and anti-macro for Paper 1.21.11 (watch mode: alerts staff, never kicks or bans by itself)"
+description: "Astral - anti-cheat and anti-macro for Paper 1.21.11 (blocks cheats and alerts staff, never kicks or bans by itself)"
 author: MrTahaDarvish
 prefix: Astral
 load: POSTWORLD
@@ -42,6 +42,7 @@ permissions:
       astral.command.logs: true
       astral.command.reset: true
       astral.command.bypass: true
+      astral.command.exempt: true
       astral.command.kick: true
       astral.command.ban: true
       astral.command.unban: true
@@ -93,6 +94,8 @@ permissions:
   astral.command.reset:
     default: op
   astral.command.bypass:
+    default: op
+  astral.command.exempt:
     default: op
   astral.command.kick:
     default: op

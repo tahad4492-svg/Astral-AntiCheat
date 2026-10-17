@@ -6,7 +6,6 @@ import me.mrtahadarvish.astral.check.CheckCategory;
 import me.mrtahadarvish.astral.check.PacketOrder;
 import me.mrtahadarvish.astral.data.Buffer;
 import me.mrtahadarvish.astral.data.PlayerData;
-import me.mrtahadarvish.astral.util.ClientUtil;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
@@ -27,9 +26,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
  */
 public final class BadPacketsCheck extends Check {
 
-    /** 1.21.2: first protocol where the client sends a tick end packet itself. */
-    private static final int NATIVE_TICK_END = 768;
-
     public BadPacketsCheck(AstralAntiCheat plugin) {
         super(plugin, "badpackets", "BadPackets", CheckCategory.PLAYER, "Packets sent in an order no vanilla client uses.");
     }
@@ -45,12 +41,6 @@ public final class BadPacketsCheck extends Check {
         int moves = ++data.movesThisTick;
         if (!shouldCheck(data) || PacketOrder.exempt(data)) {
             return;
-        }
-        if (data.protocol < 0) {
-            data.protocol = ClientUtil.protocol(event.getPlayer());
-        }
-        if (data.protocol < NATIVE_TICK_END) {
-            return; // older clients (through ViaVersion) have no real tick end packet
         }
         Buffer buffer = data.buffer("badpackets.multi");
         if (moves == 1) {

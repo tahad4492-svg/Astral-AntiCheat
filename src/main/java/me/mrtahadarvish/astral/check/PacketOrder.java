@@ -1,6 +1,7 @@
 package me.mrtahadarvish.astral.check;
 
 import me.mrtahadarvish.astral.data.PlayerData;
+import me.mrtahadarvish.astral.util.ClientUtil;
 import org.bukkit.Location;
 
 import static me.mrtahadarvish.astral.data.PlayerData.since;
@@ -17,18 +18,32 @@ import static me.mrtahadarvish.astral.data.PlayerData.since;
  */
 public final class PacketOrder {
 
+    /** 1.21.2: first protocol where the client sends a tick end packet itself. */
+    public static final int NATIVE_TICK_END = 768;
+
     private PacketOrder() {
     }
 
     /**
-     * True while the packet order can't be trusted: no tick seen yet, vehicles, or a server side
-     * position change (teleport, rejected move, piston, respawn, world change) that makes the
-     * client answer with an extra movement packet.
+     * True when the client sends real tick end packets (1.21.2+). Older clients joining through
+     * ViaVersion have no tick end of their own, so the order inside a tick is not known for them.
+     */
+    public static boolean reliable(PlayerData data) {
+        if (data.protocol < 0) {
+            data.protocol = ClientUtil.protocol(data.player());
+        }
+        return data.protocol >= NATIVE_TICK_END;
+    }
+
+    /**
+     * True while the packet order can't be trusted: client older than 1.21.2, no tick seen yet,
+     * vehicles, or a server side position change (teleport, rejected move, piston, respawn, world
+     * change) that makes the client answer with an extra movement packet.
      */
     public static boolean exempt(PlayerData data) {
-        return !data.hasTickSnapshot || data.inVehicle || data.skipMovement
+        return !data.hasTickSnapshot || data.inVehicle || data.skipMovement || !reliable(data)
                 || since(data.lastTeleport) <= 40 || since(data.lastFailMove) <= 40 || since(data.lastPiston) <= 20
-                || since(data.lastVehicle) <= 20 || since(data.lastRespawn) <= 40 || since(data.lastWorldChange) <= 40;
+                || since(data.lastVehicle) <= data.vehicleExitTicks() || since(data.lastRespawn) <= 40 || since(data.lastWorldChange) <= 40;
     }
 
     /**

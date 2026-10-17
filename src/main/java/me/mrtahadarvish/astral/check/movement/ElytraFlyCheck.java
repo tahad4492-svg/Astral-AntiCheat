@@ -51,8 +51,14 @@ public final class ElytraFlyCheck extends Check implements TickCheck {
         double horizontal = data.deltaXZ;
         double vertical = data.deltaY;
         double total = Math.sqrt(horizontal * horizontal + vertical * vertical);
+        // slow falling / low or no gravity: a legit elytra can hover and climb slowly for a long time
+        boolean lowGravity = data.gravity < 0.075 || data.slowFalling || since(data.gravityChange) < 20 + data.pingTicks();
+        if (lowGravity) {
+            state.hoverTicks = 0;
+            state.climbTicks = 0;
+        }
 
-        if (horizontal < 0.3 && Math.abs(vertical) < 0.06 && !data.horizontalCollision && !data.headBlocked) {
+        if (!lowGravity && horizontal < 0.3 && Math.abs(vertical) < 0.06 && !data.horizontalCollision && !data.headBlocked) {
             if (++state.hoverTicks >= 20) {
                 state.hoverTicks = 10;
                 fail(data, "Hover", "speed=" + format(horizontal) + " dy=" + format(vertical));
@@ -61,7 +67,7 @@ public final class ElytraFlyCheck extends Check implements TickCheck {
             state.hoverTicks = 0;
         }
 
-        if (vertical > 0.0 && horizontal < 0.2) {
+        if (!lowGravity && vertical > 0.0 && horizontal < 0.2) {
             if (++state.climbTicks >= 30) {
                 state.climbTicks = 15;
                 fail(data, "Ascend", "speed=" + format(horizontal) + " dy=" + format(vertical));
@@ -72,7 +78,7 @@ public final class ElytraFlyCheck extends Check implements TickCheck {
 
         Buffer buffer = data.buffer("elytrafly.speed");
         if (total > maxSpeed) {
-            if (buffer.increase() > 2.0) {
+            if (buffer.increase() > 2.0 && !rocketAttached(data)) {
                 fail(data, "Speed", "speed=" + format(total) + " max=" + format(maxSpeed));
             }
         } else {
@@ -83,6 +89,17 @@ public final class ElytraFlyCheck extends Check implements TickCheck {
     private boolean velocityPending(PlayerData data) {
         for (VelocityRecord record : data.velocities) {
             if (data.clientTicks - record.clientTick <= record.window + 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Rockets a plugin attached to the player (no PlayerElytraBoostEvent for those). */
+    private boolean rocketAttached(PlayerData data) {
+        for (org.bukkit.entity.Entity entity : data.player().getNearbyEntities(4.0, 4.0, 4.0)) {
+            if (entity instanceof org.bukkit.entity.Firework firework && firework.getAttachedTo() == data.player()) {
+                data.lastFirework = PlayerData.now();
                 return true;
             }
         }

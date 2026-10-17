@@ -64,7 +64,7 @@ public final class TimerCheck extends MovementCheck {
             state.windowStart = now;
         }
 
-        if (data.inVehicle || data.player().isDead()) {
+        if (data.player().isDead()) {
             state.balance = 0L;
             return;
         }

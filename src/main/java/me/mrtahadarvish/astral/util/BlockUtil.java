@@ -157,12 +157,28 @@ public final class BlockUtil {
      */
     public static boolean nearCollidable(Player player) {
         for (Entity entity : player.getNearbyEntities(1.5, 2.5, 1.5)) {
-            String type = entity.getType().name();
-            if (type.contains("BOAT") || type.contains("RAFT") || type.contains("SHULKER")
-                    || type.contains("MINECART") || type.contains("GHAST")) {
+            if (isPlatform(entity)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Entities players can stand on or get pushed by like a block: boats / rafts, minecarts,
+     * shulkers and happy ghasts. Minigames often build moving platforms (battle bus, airships,
+     * elevators) out of invisible shulkers or boats.
+     */
+    public static boolean isPlatform(Entity entity) {
+        String type = entity.getType().name();
+        return type.contains("BOAT") || type.contains("RAFT") || type.contains("MINECART")
+                || type.equals("SHULKER") || type.equals("HAPPY_GHAST");
+    }
+
+    /** True when a platform entity touches the player's box (below, around or above). */
+    public static boolean touchesPlatform(Player player, BoundingBox box) {
+        BoundingBox area = new BoundingBox(box.getMinX() - 0.6, box.getMinY() - 1.2, box.getMinZ() - 0.6,
+                box.getMaxX() + 0.6, box.getMaxY() + 0.6, box.getMaxZ() + 0.6);
+        return !player.getWorld().getNearbyEntities(area, entity -> entity != player && isPlatform(entity)).isEmpty();
     }
 }

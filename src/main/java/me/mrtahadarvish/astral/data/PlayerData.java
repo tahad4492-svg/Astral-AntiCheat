@@ -1,5 +1,7 @@
 package me.mrtahadarvish.astral.data;
 
+import me.mrtahadarvish.astral.check.CheckCategory;
+import me.mrtahadarvish.astral.manager.AlertDigest;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -39,6 +41,8 @@ public final class PlayerData {
     // ------------------------------------------------------------------ violations
     private final Map<String, Double> violations = new HashMap<>();
     public final Map<String, Long> lastAlert = new HashMap<>();
+    /** Flags waiting for the next compact staff alert. */
+    public final AlertDigest alertDigest = new AlertDigest();
     public final Set<String> punished = new HashSet<>();
     public final Deque<FlagRecord> flags = new ArrayDeque<>();
     public int totalFlags;
@@ -83,7 +87,16 @@ public final class PlayerData {
     public double speedAttribute = 0.1;
     public double jumpStrength = 0.42;
     public double stepHeight = 0.6;
+    /** Gravity of the player: the gravity attribute, or 0 while a plugin turned gravity off. */
     public double gravity = 0.08;
+    public boolean slowFalling;
+    /**
+     * Gravity / slow falling before the last change, and when it changed. The client applies such
+     * a change about half a round trip later, so for a short while both are possible.
+     */
+    public double oldGravity = 0.08;
+    public boolean oldSlowFalling;
+    public int gravityChange = NEVER;
 
     // ------------------------------------------------------------------ exemption timestamps (server ticks)
     public int lastTeleport = NEVER, lastVelocity = NEVER, lastFlight = NEVER, lastGlide = NEVER, lastRiptide = NEVER;
@@ -93,6 +106,22 @@ public final class PlayerData {
     public int lastFirework = NEVER, lastSpear = NEVER, lastSetback = NEVER, lastHeadBlocked = NEVER;
     public int lastCollision = NEVER, lastScaffolding = NEVER, lastDolphin = NEVER, lastSlowFalling = NEVER;
     public int lastDamage = NEVER, lastPush = NEVER, lastFailMove = NEVER, lastExplosion = NEVER;
+    /** Standing on / touching a boat, minecart, shulker or happy ghast (moving platforms). */
+    public int lastEntityPlatform = NEVER;
+    /** A plugin turned gravity off for the player (Entity#setGravity(false)). */
+    public int lastNoGravity = NEVER;
+    public boolean nearEntityPlatform;
+    /** A fall damage event was cancelled by another plugin (minigames cancel landing damage). */
+    public int lastFallCancelled = NEVER;
+    /**
+     * Paper ignores movement until the client confirms a teleport, so the position stays at the
+     * teleport target for about one round trip (a teleport every tick = frozen the whole time).
+     */
+    public boolean teleportPending;
+    public double teleportX, teleportY, teleportZ;
+    public int teleportTick = NEVER;
+    /** Left a vehicle: the client may still answer once with its old seat position. */
+    public boolean dismountPending;
 
     // ------------------------------------------------------------------ lag compensation
     /** Bounding boxes of this player for the last 40 server ticks. */
@@ -128,10 +157,24 @@ public final class PlayerData {
     public boolean digging;
     /** Set when a movement check flagged during the current client tick. */
     public boolean movementFlagged;
+    /** Set when a movement check grew a suspicion buffer this tick (the position is not trusted). */
+    public boolean movementSuspicious;
+    /** Counts every Buffer#increase of this player. */
+    public int bufferIncreases;
 
     // ------------------------------------------------------------------ setback / nofall
+    /** Last position on real ground that passed every movement check. */
     public Location lastSafe;
+    /** Last position (anywhere, also in the air) that passed every movement check. */
+    public boolean hasLegit;
+    public double legitX, legitY, legitZ;
+    public UUID legitWorld;
     public double fallDistance;
+    /**
+     * Highest fall distance the server can legitimately have for this player (sum of the downward
+     * moves since the client last said "on ground" or touched water). Used by the mace check.
+     */
+    public double legitFall;
     public boolean groundSpoofed;
     public double fallDamageTaken;
 
@@ -168,8 +211,46 @@ public final class PlayerData {
         return bypassPermission || bypassChecks.contains(checkId);
     }
 
+    /** Temporary exemptions from /astral exempt (null key = every category). Server tick it ends at. */
+    private final Map<CheckCategory, Integer> exemptUntil = new HashMap<>();
+    private int exemptAllUntil = NEVER;
+
+    /** Exempts the player for some server ticks. category null = from every check. */
+    public void exempt(CheckCategory category, int ticks) {
+        int until = now() + ticks;
+        if (category == null) {
+            exemptAllUntil = until;
+        } else {
+            exemptUntil.put(category, until);
+        }
+    }
+
+    public void clearExemptions() {
+        exemptAllUntil = NEVER;
+        exemptUntil.clear();
+    }
+
+    public boolean isExempt(CheckCategory category) {
+        int now = now();
+        if (now < exemptAllUntil) {
+            return true;
+        }
+        Integer until = exemptUntil.get(category);
+        return until != null && now < until;
+    }
+
+    /** Server ticks left of the longest running exemption (0 = none). */
+    public int exemptTicksLeft() {
+        int now = now();
+        int max = exemptAllUntil - now;
+        for (int until : exemptUntil.values()) {
+            max = Math.max(max, until - now);
+        }
+        return Math.max(0, max);
+    }
+
     public Buffer buffer(String key) {
-        return buffers.computeIfAbsent(key, k -> new Buffer());
+        return buffers.computeIfAbsent(key, k -> new Buffer(this));
     }
 
     @SuppressWarnings("unchecked")
@@ -245,5 +326,15 @@ public final class PlayerData {
 
     public boolean inCombat() {
         return since(lastAttackTick) < 60;
+    }
+
+    /** Server ticks after leaving a vehicle during which the client can still be on the seat. */
+    public int vehicleExitTicks() {
+        return 20 + pingTicks();
+    }
+
+    /** Riding, or just got off (the client sees its vehicle late, so its own eyes trail behind). */
+    public boolean recentlyRode() {
+        return inVehicle || since(lastVehicle) < vehicleExitTicks();
     }
 }

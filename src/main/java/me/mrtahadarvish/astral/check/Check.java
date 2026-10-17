@@ -81,8 +81,8 @@ public abstract class Check implements Listener {
 
     /**
      * True when this check has to look at the player: check enabled, player not bypassing
-     * (astral.bypass / astral.bypass.&lt;check&gt; / /astral bypass), not a Bedrock player and not
-     * just joined.
+     * (astral.bypass / astral.bypass.&lt;check&gt; / /astral bypass), not exempted for a while
+     * (/astral exempt), not in an exempt world, not a Bedrock player and not just joined.
      */
     protected boolean shouldCheck(PlayerData data) {
         if (!enabled || data == null) {
@@ -92,6 +92,13 @@ public abstract class Check implements Listener {
             return false;
         }
         if (data.bedrock && plugin.settings().exemptBedrock) {
+            return false;
+        }
+        if (data.isExempt(category)) {
+            return false; // /astral exempt
+        }
+        if (!plugin.settings().exemptWorlds.isEmpty()
+                && plugin.settings().exemptWorlds.contains(data.player().getWorld().getName().toLowerCase(java.util.Locale.ROOT))) {
             return false;
         }
         return PlayerData.since(data.joinTick) > plugin.settings().joinExemptTicks;

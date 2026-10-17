@@ -2,6 +2,7 @@ package me.mrtahadarvish.astral;
 
 import me.mrtahadarvish.astral.check.CheckManager;
 import me.mrtahadarvish.astral.command.AstralCommand;
+import me.mrtahadarvish.astral.config.ConfigUpdater;
 import me.mrtahadarvish.astral.config.Messages;
 import me.mrtahadarvish.astral.config.Settings;
 import me.mrtahadarvish.astral.data.PlayerData;
@@ -47,6 +48,7 @@ public final class AstralAntiCheat extends JavaPlugin {
     public void onEnable() {
         startTime = System.currentTimeMillis();
         saveDefaultConfig();
+        ConfigUpdater.update(this);
         settings = new Settings();
         settings.load(getConfig());
         messages = new Messages(this);
@@ -58,6 +60,7 @@ public final class AstralAntiCheat extends JavaPlugin {
         data = new PlayerDataManager(this);
         violations = new ViolationManager(this);
         alerts = new AlertManager(this);
+        alerts.load();
         freeze = new FreezeManager(this);
         menus = new MenuManager(this);
         checks = new CheckManager(this);
@@ -85,6 +88,7 @@ public final class AstralAntiCheat extends JavaPlugin {
 
         Bukkit.getScheduler().runTaskTimer(this, data::tick, 1L, 1L);
         Bukkit.getScheduler().runTaskTimer(this, this::everySecond, 20L, 20L);
+        Bukkit.getScheduler().runTaskTimer(this, alerts::tick, 10L, 10L);
         Bukkit.getScheduler().runTaskTimer(this, freeze::tick, 60L, 60L);
         Bukkit.getScheduler().runTaskTimer(this, this::cpsDisplay, 5L, 5L);
 
@@ -110,8 +114,10 @@ public final class AstralAntiCheat extends JavaPlugin {
     /** /astral reload */
     public void reload() {
         reloadConfig();
+        ConfigUpdater.update(this);
         settings.load(getConfig());
         messages.load();
+        alerts.load();
         checks.reload();
         bypass.load();
         for (PlayerData playerData : data.all()) {

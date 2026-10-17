@@ -46,10 +46,14 @@ class CheatClientTest {
         assertTrue(caught, scenario + " should be caught by " + check + "(" + type + ") -> " + sim.summary(cheater));
     }
 
-    private static void assertCaught(Sim sim, SimPlayer cheater, String scenario, String check) {
-        boolean caught = sim.flagged(cheater, check);
+    /** Caught by one of the checks (with blocking on, the first check to catch a cheat stops it). */
+    private static void assertCaught(Sim sim, SimPlayer cheater, String scenario, String... checks) {
+        boolean caught = false;
+        for (String check : checks) {
+            caught |= sim.flagged(cheater, check);
+        }
         Report.add("CHEAT", scenario, sim.summary(cheater), caught);
-        assertTrue(caught, scenario + " should be caught by " + check + " -> " + sim.summary(cheater));
+        assertTrue(caught, scenario + " should be caught by " + String.join(" / ", checks) + " -> " + sim.summary(cheater));
     }
 
     private static Sim arena() {
@@ -239,7 +243,7 @@ class CheatClientTest {
                 pl.cheatGround = true;
             });
         }
-        assertCaught(sim, p, "Jesus (walking on water)", "Jesus");
+        assertCaught(sim, p, "Jesus (walking on water)", "Jesus", "Flight");
     }
 
     @Test
@@ -404,7 +408,7 @@ class CheatClientTest {
             sim.clientTick(b, null, null);
             sim.serverTick();
         }
-        assertCaught(sim, a, "Silent rotation aura (attack after movement)", "KillAura");
+        assertCaught(sim, a, "Silent rotation aura (attack after movement)", "KillAura", "Aim");
     }
 
     @Test
@@ -432,7 +436,7 @@ class CheatClientTest {
             sim.clientTick(b, null, null);
             sim.serverTick();
         }
-        assertCaughtType(sim, a, "Silent rotation aura (aim inside the movement packet)", "KillAura", "Post");
+        assertCaught(sim, a, "Silent rotation aura (aim inside the movement packet)", "KillAura", "Aim");
     }
 
     @Test
@@ -986,7 +990,7 @@ class CheatClientTest {
                 sim.swing(pl);
             });
         }
-        assertCaught(sim, p, "FastPlace (a block every tick)", "FastPlace");
+        assertCaught(sim, p, "FastPlace (a block every tick)", "FastPlace", "Scaffold");
     }
 
     @Test
@@ -1085,6 +1089,7 @@ class CheatClientTest {
     @Test
     void watchModeNeverBlocks() {
         Sim sim = arena();
+        sim.settings.mitigation = false;
         SimPlayer a = sim.join("WatchReach", 0.5, 64, 0.5);
         SimPlayer b = sim.join("WatchVictim", 0.5, 64, 5.0);
         sim.idle(5);

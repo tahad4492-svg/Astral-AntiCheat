@@ -7,6 +7,7 @@ import me.mrtahadarvish.astral.check.combat.CriticalsCheck;
 import me.mrtahadarvish.astral.check.combat.CrystalAuraCheck;
 import me.mrtahadarvish.astral.check.combat.HitboxCheck;
 import me.mrtahadarvish.astral.check.combat.KillAuraCheck;
+import me.mrtahadarvish.astral.check.combat.MaceCheck;
 import me.mrtahadarvish.astral.check.combat.ReachCheck;
 import me.mrtahadarvish.astral.check.combat.VelocityCheck;
 import me.mrtahadarvish.astral.check.macro.AutoClickerCheck;
@@ -84,6 +85,7 @@ public final class CheckManager {
         add(new VelocityCheck(plugin));
         add(new AimCheck(plugin));
         add(new CrystalAuraCheck(plugin));
+        add(new MaceCheck(plugin));
         // player
         add(new InventoryMoveCheck(plugin));
         add(new BadPacketsCheck(plugin));

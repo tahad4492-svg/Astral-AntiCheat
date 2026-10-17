@@ -95,6 +95,24 @@ public final class MovementProcessor implements Listener {
         data.pitch = location.getPitch();
 
         boolean worldChanged = data.world == null || !data.world.equals(world.getUID());
+        if (data.teleportPending) {
+            boolean atTarget = Math.abs(data.x - data.teleportX) < 1.0E-4 && Math.abs(data.y - data.teleportY) < 1.0E-4
+                    && Math.abs(data.z - data.teleportZ) < 1.0E-4;
+            if (atTarget && PlayerData.since(data.teleportTick) < 2 * data.pingTicks() + 25) {
+                // Paper waits for the client to confirm the teleport: the position is frozen and the
+                // ground state is the old one, nothing to check yet
+                data.resetPosition = true;
+            } else {
+                data.teleportPending = false;
+                data.resetPosition = true;
+                data.lastTeleport = now; // the grace after a teleport starts when the client really is there
+            }
+        }
+        if (data.dismountPending && data.hasPosition && (data.x != data.lastX || data.y != data.lastY || data.z != data.lastZ)) {
+            // first position after getting off: may still be the old seat position of the client
+            data.dismountPending = false;
+            data.resetPosition = true;
+        }
         if (!data.hasPosition || data.resetPosition || worldChanged) {
             data.lastX = data.x;
             data.lastY = data.y;
@@ -121,6 +139,12 @@ public final class MovementProcessor implements Listener {
         }
 
         data.clientOnGround = player.isOnGround();
+        // the server resets the fall distance when the client says "on ground" and in water
+        if (data.clientOnGround || player.isInWater() || player.isInLava()) {
+            data.legitFall = 0.0;
+        } else if (data.deltaY < 0.0) {
+            data.legitFall -= data.deltaY;
+        }
         data.gliding = player.isGliding();
         data.swimming = player.isSwimming();
         data.riptiding = player.isRiptiding();
@@ -134,7 +158,15 @@ public final class MovementProcessor implements Listener {
         data.speedAttribute = attribute(player, Attribute.MOVEMENT_SPEED, 0.1);
         data.jumpStrength = attribute(player, Attribute.JUMP_STRENGTH, 0.42);
         data.stepHeight = attribute(player, Attribute.STEP_HEIGHT, 0.6);
-        data.gravity = attribute(player, Attribute.GRAVITY, 0.08);
+        double gravity = player.hasGravity() ? attribute(player, Attribute.GRAVITY, 0.08) : 0.0;
+        boolean slowFalling = player.hasPotionEffect(PotionEffectType.SLOW_FALLING);
+        if (gravity != data.gravity || slowFalling != data.slowFalling) {
+            data.oldGravity = data.gravity;
+            data.oldSlowFalling = data.slowFalling;
+            data.gravityChange = now;
+        }
+        data.gravity = gravity;
+        data.slowFalling = slowFalling;
 
         BoundingBox box = player.getBoundingBox();
         data.chunkLoaded = BlockUtil.isLoaded(world, box);
@@ -143,6 +175,9 @@ public final class MovementProcessor implements Listener {
             return;
         }
         scan(world, box, data);
+        // standing on a boat / shulker / happy ghast is "ground" Astral can not see in the blocks
+        data.nearEntityPlatform = (!data.onGround || data.clientOnGround != data.onGround || data.horizontalCollision)
+                && BlockUtil.touchesPlatform(player, box);
 
         // ----- exemption timestamps
         if (data.inLiquid) data.lastLiquid = now;
@@ -159,6 +194,8 @@ public final class MovementProcessor implements Listener {
         if (data.gliding) data.lastGlide = now;
         if (data.riptiding) data.lastRiptide = now;
         if (data.inVehicle) data.lastVehicle = now;
+        if (data.nearEntityPlatform) data.lastEntityPlatform = now;
+        if (!player.hasGravity()) data.lastNoGravity = now;
         GameMode mode = player.getGameMode();
         if (data.flying || mode == GameMode.CREATIVE || mode == GameMode.SPECTATOR) data.lastFlight = now;
         if (player.hasPotionEffect(PotionEffectType.LEVITATION)) data.lastLevitation = now;
@@ -303,11 +340,21 @@ public final class MovementProcessor implements Listener {
         data.tickEndPitch = location.getPitch();
         data.hasTickSnapshot = true;
 
-        if (!data.skipMovement && !data.movementFlagged && data.onGround && data.clientOnGround
-                && !data.inLiquid && !data.inVehicle && !data.gliding && data.chunkLoaded) {
-            data.lastSafe = location;
+        // right after a teleport / setback the target stays the legit position, so the few unchecked
+        // ticks after it can not be used to move on step by step
+        if (!data.skipMovement && !data.movementFlagged && !data.movementSuspicious && data.chunkLoaded && !data.inVehicle
+                && PlayerData.since(data.lastSetback) >= 5 && PlayerData.since(data.lastTeleport) >= 5) {
+            data.hasLegit = true;
+            data.legitX = location.getX();
+            data.legitY = location.getY();
+            data.legitZ = location.getZ();
+            data.legitWorld = location.getWorld().getUID();
+            if (data.onGround && data.clientOnGround && !data.inLiquid && !data.gliding) {
+                data.lastSafe = location;
+            }
         }
         data.movementFlagged = false;
+        data.movementSuspicious = false;
     }
 
     private static double attribute(Player player, Attribute attribute, double def) {

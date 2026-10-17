@@ -1,6 +1,7 @@
 package me.mrtahadarvish.astral.listener;
 
 import com.destroystokyo.paper.event.player.PlayerElytraBoostEvent;
+import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import io.papermc.paper.event.entity.EntityKnockbackEvent;
 import io.papermc.paper.event.player.PlayerFailMoveEvent;
 import me.mrtahadarvish.astral.AstralAntiCheat;
@@ -75,8 +76,20 @@ public final class DataListener implements Listener {
         data.fallDistance = 0.0;
         data.groundSpoofed = false;
         Location to = event.getTo();
+        data.teleportPending = true;
+        data.teleportTick = PlayerData.now();
+        data.teleportX = to.getX();
+        data.teleportY = to.getY();
+        data.teleportZ = to.getZ();
         if (to.getWorld() != null) {
-            data.lastSafe = to.clone();
+            // where the server put the player is legit, but it is not known to be ground
+            // (minigames teleport players into the air - a battle bus, a drop ship ...)
+            data.lastSafe = null;
+            data.hasLegit = true;
+            data.legitX = to.getX();
+            data.legitY = to.getY();
+            data.legitZ = to.getZ();
+            data.legitWorld = to.getWorld().getUID();
         }
     }
 
@@ -87,7 +100,8 @@ public final class DataListener implements Listener {
             data.lastRespawn = PlayerData.now();
             data.lastTeleport = PlayerData.now();
             data.resetPosition = true;
-            data.lastSafe = event.getRespawnLocation().clone();
+            data.lastSafe = null;
+            data.hasLegit = false;
             data.velocities.clear();
         }
     }
@@ -120,7 +134,8 @@ public final class DataListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    // not ignoreCancelled: the client already started flying before a plugin cancelled it
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onToggleFlight(PlayerToggleFlightEvent event) {
         PlayerData data = data(event.getPlayer());
         if (data != null) {
@@ -226,7 +241,8 @@ public final class DataListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    // not ignoreCancelled: the client already started gliding before a plugin cancelled it
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onGlide(EntityToggleGlideEvent event) {
         if (event.getEntity() instanceof Player player) {
             PlayerData data = data(player);
@@ -242,8 +258,30 @@ public final class DataListener implements Listener {
             PlayerData data = data(player);
             if (data != null) {
                 data.lastVehicle = PlayerData.now();
+                data.lastSafe = null; // the ground before boarding (a bus) is no setback target later
             }
         }
+    }
+
+    /** Minigames cancel landing damage (battle royale drops) - NoFall must not hand it out then. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onFallDamageCancelled(EntityDamageEvent event) {
+        if (event.isCancelled() && event.getCause() == EntityDamageEvent.DamageCause.FALL
+                && event.getEntity() instanceof Player player) {
+            PlayerData data = data(player);
+            if (data != null) {
+                data.lastFallCancelled = PlayerData.now();
+            }
+        }
+    }
+
+    /**
+     * Lag compensation history, recorded at the end of the tick: riders are on their seat then
+     * (Paper snaps a vehicle driver to the vehicle's feet while handling its packet).
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onServerTickEnd(ServerTickEndEvent event) {
+        plugin.data().recordHistory(PlayerData.now() + 1);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -253,6 +291,9 @@ public final class DataListener implements Listener {
             if (data != null) {
                 data.lastVehicle = PlayerData.now();
                 data.resetPosition = true;
+                data.dismountPending = true;
+                data.lastSafe = null;
+                data.hasLegit = false;
             }
         }
     }

@@ -13,10 +13,19 @@ public final class Settings {
     public int maxPingCompensation;
     public int joinExemptTicks;
     public boolean exemptBedrock;
-    /** false = watch only (alerts + logs), true = also block cheats. */
+    /** true = block cheats (cancel hits, setbacks ...), false = watch only (alerts + logs). */
     public boolean mitigation;
+    public double maxSetbackDistance;
+    /** Lower case names of worlds where nobody is checked. */
+    public java.util.Set<String> exemptWorlds = java.util.Set.of();
 
     public boolean alertsByDefault;
+    /** One grouped line per player instead of one line per flag. */
+    public boolean alertCompact;
+    public long alertGatherMs;
+    public long alertIntervalMs;
+    public long alertRepeatMs;
+    public long alertQuietMs;
     public long alertCooldownMs;
     public boolean alertConsole;
     public String alertClickCommand;
@@ -40,9 +49,20 @@ public final class Settings {
         maxPingCompensation = config.getInt("settings.max-ping-compensation", 600);
         joinExemptTicks = config.getInt("settings.join-exempt-ticks", 60);
         exemptBedrock = config.getBoolean("settings.exempt-bedrock-players", true);
-        mitigation = config.getBoolean("settings.mitigation", false);
+        mitigation = config.getBoolean("settings.mitigation", true);
+        maxSetbackDistance = Math.max(1.0, config.getDouble("settings.max-setback-distance", 12.0));
+        java.util.Set<String> worlds = new java.util.HashSet<>();
+        for (String world : config.getStringList("settings.exempt-worlds")) {
+            worlds.add(world.toLowerCase(java.util.Locale.ROOT));
+        }
+        exemptWorlds = worlds;
 
         alertsByDefault = config.getBoolean("alerts.enabled-by-default", true);
+        alertCompact = config.getBoolean("alerts.compact", true);
+        alertGatherMs = Math.max(0L, (long) (config.getDouble("alerts.gather-seconds", 1.0) * 1000.0));
+        alertIntervalMs = Math.max(0L, (long) (config.getDouble("alerts.interval-seconds", 5.0) * 1000.0));
+        alertRepeatMs = Math.max(alertIntervalMs, (long) (config.getDouble("alerts.repeat-seconds", 30.0) * 1000.0));
+        alertQuietMs = Math.max(alertRepeatMs, (long) (config.getDouble("alerts.reset-after-seconds", 120.0) * 1000.0));
         alertCooldownMs = config.getLong("alerts.cooldown-ms", 400L);
         alertConsole = config.getBoolean("alerts.console", true);
         alertClickCommand = config.getString("alerts.click-command", "/astral tp %player%");

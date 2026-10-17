@@ -71,7 +71,9 @@ public final class AutoClickerCheck extends Check implements TickCheck {
         if (cps > maxCps) {
             if (++state.highCpsTicks >= 20) {
                 state.highCpsTicks = 0;
-                flag(data, "CPS", "cps=" + cps + " max=" + maxCps);
+                if (flag(data, "CPS", "cps=" + cps + " max=" + maxCps)) {
+                    plugin.checks().lockCombat(data);
+                }
             }
         } else {
             state.highCpsTicks = Math.max(0, state.highCpsTicks - 2);
@@ -91,8 +93,10 @@ public final class AutoClickerCheck extends Check implements TickCheck {
             if (patterns <= maxPatterns) {
                 if (++state.patternWindows >= needed) {
                     state.patternWindows = 1;
-                    flag(data, "Pattern", "patterns=" + patterns + " cps=" + format(averageCps, 1)
-                            + " dev=" + format(MathUtil.deviation(state.delays), 2));
+                    if (flag(data, "Pattern", "patterns=" + patterns + " cps=" + format(averageCps, 1)
+                            + " dev=" + format(MathUtil.deviation(state.delays), 2))) {
+                        plugin.checks().lockCombat(data);
+                    }
                 }
             } else {
                 state.patternWindows = 0;

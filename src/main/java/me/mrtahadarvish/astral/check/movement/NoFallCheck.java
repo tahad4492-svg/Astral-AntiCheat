@@ -39,7 +39,7 @@ public final class NoFallCheck extends MovementCheck {
 
     @Override
     protected void handle(PlayerData data) {
-        if (exempt(data) || resets(data)) {
+        if (exempt(data, true) || resets(data)) {
             data.fallDistance = 0.0;
             data.groundSpoofed = false;
             data.fallDamageTaken = 0.0;
@@ -48,6 +48,14 @@ public final class NoFallCheck extends MovementCheck {
 
         if (!data.onGround && data.deltaY < 0.0) {
             data.fallDistance -= data.deltaY;
+        }
+        if (exempt(data)) {
+            // just got off a vehicle (battle bus): keep counting the fall, but do not judge yet
+            if (data.onGround) {
+                data.fallDistance = 0.0;
+                data.fallDamageTaken = 0.0;
+            }
+            return;
         }
 
         Buffer buffer = data.buffer("nofall");
@@ -84,6 +92,9 @@ public final class NoFallCheck extends MovementCheck {
     }
 
     private void compensate(PlayerData data) {
+        if (since(data.lastFallCancelled) < 100) {
+            return; // a minigame cancels fall damage on purpose
+        }
         Player player = data.player();
         Block below = player.getLocation().subtract(0.0, 0.2, 0.0).getBlock();
         Material type = below.getType();

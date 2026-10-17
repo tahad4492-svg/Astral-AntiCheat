@@ -80,7 +80,9 @@ public final class AimCheck extends Check implements TickCheck {
         if (robotic && yaw > 1.0F && data.deltaYaw == data.lastDeltaYaw && data.deltaPitch == data.lastDeltaPitch) {
             if (++state.roboticTicks >= 4) {
                 state.roboticTicks = 0;
-                flag(data, "Robotic", "yaw step=" + format(data.deltaYaw, 4) + " pitch step=" + format(data.deltaPitch, 4));
+                if (flag(data, "Robotic", "yaw step=" + format(data.deltaYaw, 4) + " pitch step=" + format(data.deltaPitch, 4))) {
+                    plugin.checks().lockCombat(data);
+                }
             }
         } else {
             state.roboticTicks = 0;
@@ -96,8 +98,11 @@ public final class AimCheck extends Check implements TickCheck {
             if (in >= 8.0 && out >= in * 0.7 && rest <= in * 0.15) {
                 if (buffer.increase() > 1.0) {
                     buffer.set(0.5);
-                    flag(data, "SilentAim", "turned " + format(in, 1) + " deg for the hit and " + format(out, 1)
-                            + " deg back (diff " + format(rest, 2) + ")");
+                    if (flag(data, "SilentAim", "turned " + format(in, 1) + " deg for the hit and " + format(out, 1)
+                            + " deg back (diff " + format(rest, 2) + ")")) {
+                        // the hits of a silent aim user do not register for a while
+                        plugin.checks().lockCombat(data);
+                    }
                 }
             } else {
                 buffer.decrease(0.05);

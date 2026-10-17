@@ -88,7 +88,8 @@ public final class KillAuraCheck extends Check implements TickCheck {
             checkSwitch(event, player, target, data);
         }
 
-        if (walls && target.getWorld().equals(player.getWorld()) && !MovementProcessor.isSpear(player.getInventory().getItemInMainHand())) {
+        if (walls && !data.recentlyRode() && target.getWorld().equals(player.getWorld())
+                && !MovementProcessor.isSpear(player.getInventory().getItemInMainHand())) {
             List<BoundingBox> boxes = CombatUtil.targetBoxes(plugin, target, data);
             Vector eye = player.getEyeLocation().toVector();
             if (CombatUtil.allBlocked(player.getWorld(), eye, boxes)) {

@@ -1,5 +1,6 @@
 package me.mrtahadarvish.astral.sim;
 
+import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import io.papermc.paper.event.packet.ClientTickEndEvent;
 import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
@@ -295,6 +296,7 @@ public final class Sim {
     }
 
     public void serverTick() {
+        call(new ServerTickEndEvent(SimServer.tick, 50.0, 0L));
         SimServer.tick++;
         nanos += 50_000_000L;
         plugin.data().tick();

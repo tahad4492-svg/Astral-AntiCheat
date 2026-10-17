@@ -3,6 +3,7 @@ package me.mrtahadarvish.astral.config;
 import me.mrtahadarvish.astral.util.Text;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -35,6 +36,11 @@ public final class Messages {
             defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
             config.setDefaults(defaults);
         }
+    }
+
+    /** A section of messages.yml (falls back to the default messages). */
+    public ConfigurationSection section(String key) {
+        return config.getConfigurationSection(key);
     }
 
     public String prefix() {

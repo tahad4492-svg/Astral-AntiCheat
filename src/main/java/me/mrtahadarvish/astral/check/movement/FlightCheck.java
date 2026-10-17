@@ -61,11 +61,13 @@ public final class FlightCheck extends MovementCheck {
             return;
         }
 
-        boolean slowFalling = since(data.lastSlowFalling) < 2;
-        double gravity = slowFalling && data.lastDeltaY <= 0.0 ? Math.min(data.gravity, 0.01) : data.gravity;
-        double predicted = (data.lastDeltaY - gravity) * 0.98;
-        if (Math.abs(predicted) < 0.003) {
-            predicted = 0.0;
+        double predicted = predict(data.lastDeltaY, data.gravity, data.slowFalling);
+        // gravity / slow falling changed: the client may still use the old values for a round trip
+        if (since(data.gravityChange) <= data.pingTicks() + 3) {
+            double old = predict(data.lastDeltaY, data.oldGravity, data.oldSlowFalling);
+            if (Math.abs(deltaY - old) < Math.abs(deltaY - predicted)) {
+                predicted = old;
+            }
         }
         double difference = deltaY - predicted;
 
@@ -97,10 +99,18 @@ public final class FlightCheck extends MovementCheck {
                     type = "FastFall";
                 }
                 fail(data, type, "dy=" + format(deltaY) + " pred=" + format(predicted) + " air=" + data.airTicks);
+                buffer.set(maxBuffer * 0.5); // one streak of bad ticks = a few flags, not one per tick
             }
         } else {
             buffer.decrease(0.2);
         }
+    }
+
+    /** Vanilla: motionY = (motionY - gravity) * 0.98, slow falling caps gravity at 0.01 while falling. */
+    private static double predict(double lastDeltaY, double gravity, boolean slowFalling) {
+        double g = slowFalling && lastDeltaY <= 0.0 ? Math.min(gravity, 0.01) : gravity;
+        double predicted = (lastDeltaY - g) * 0.98;
+        return Math.abs(predicted) < 0.003 ? 0.0 : predicted;
     }
 
     private void fail(PlayerData data, String type, String debug) {

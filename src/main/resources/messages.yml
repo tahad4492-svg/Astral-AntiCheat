@@ -17,10 +17,36 @@ alerts-disabled: "%prefix%&cAlerts disabled."
 verbose-enabled: "%prefix%&aVerbose enabled. &7You will see EVERY flag (no cooldown, no minimum VL)."
 verbose-disabled: "%prefix%&cVerbose disabled."
 
-# Alert sent to staff.  %player% %check% %type% %vl% %ping% %tps% %debug% %category%
+# ---------------------------------------------------------------------
+# Compact staff alert (alerts.compact: true). Flags of a player are grouped
+# into ONE line that says what they are most likely using. Details are in the
+# hover. How often a line is sent: config.yml -> alerts.
+#   %player% %cheats% %flags% %vl% %ping% %tps% %client% %mode%
+# ---------------------------------------------------------------------
+compact-alert: "%prefix%&f%player% &7may be using %cheats% &8[&7VL &c%vl% &8| &7%ping%ms &8| %mode%&8]"
+# one cheat inside %cheats%  (%cheat% %count%)
+compact-alert-cheat: "&c%cheat% &7x%count%"
+compact-alert-separator: "&7, "
+compact-alert-hover:
+  - "&#00E5FF&l%player% &7- possible cheats"
+  - "%details%"
+  - ""
+  - "&7Ping: &f%ping%ms &8| &7TPS: &f%tps%"
+  - "&7Client: &f%client%"
+  - "&7Astral: %mode%"
+  - ""
+  - "&eClick to teleport"
+# one line per cheat in the hover (%cheat% %count% %checks% %vl%) + the last detail (%debug%)
+compact-alert-detail: "&c%cheat% &7x%count% &8- &f%checks% &8(&7vl %vl%&8)"
+compact-alert-detail-info: "&8   %debug%"
+mode-blocking: "&cblocked"
+mode-watching: "&ewatching"
+
+# Old style alert, one line per flag (alerts.compact: false).  %player% %check% %type% %cheat% %vl% %ping% %tps% %debug% %category%
 alert: "%prefix%&f%player% &7failed &#00E5FF%check% &8(&7%type%&8) &7x&c%vl% &8[&7%ping%ms&8]"
 alert-hover:
   - "&#00E5FF&l%check% &8(&7%type%&8)"
+  - "&7Might be: &c%cheat%"
   - "&7%description%"
   - ""
   - "&7Category: &f%category%"
@@ -30,7 +56,7 @@ alert-hover:
   - "&7Info: &f%debug%"
   - ""
   - "&eClick to teleport"
-verbose: "&8[&7V&8] &7%player% &8» &f%check% &8(&7%type%&8) &7%debug% &8(&7vl %vl%&8)"
+verbose: "&8[&7V&8] &7%player% &8» &f%check% &8(&7%type%&8) &c%cheat% &7%debug% &8(&7vl %vl%&8)"
 
 # Sent to everyone when a player is punished (punishments.broadcast)
 punish-broadcast:
@@ -87,3 +113,80 @@ cps-start: "%prefix%&7Showing the CPS of &f%player% &7in your action bar. Run ag
 cps-stop: "%prefix%&7Stopped showing CPS."
 debug-enabled: "%prefix%&aDebug for &f%check% &aenabled."
 debug-disabled: "%prefix%&cDebug for &f%check% &cdisabled."
+
+# ---------------------------------------------------------------------
+# What a check + type is shown as in the alerts ("might be using ...").
+# <check>: "name"   or   <check>: {default: "name", <type>: "name"}
+# (check ids are the section names in config.yml, types are shown in the alert hover)
+# ---------------------------------------------------------------------
+cheat-names:
+  reach: "Reach"
+  hitbox: "KillAura / Hitbox"
+  killaura:
+    default: "KillAura"
+    post: "KillAura (silent rotations)"
+    multi: "Multi aura"
+    switch: "Switch aura"
+    noswing: "KillAura (no swing)"
+    walls: "KillAura (through walls)"
+  aim:
+    silentaim: "Silent aim"
+    gcd: "Aimbot / aim assist"
+    robotic: "Aimbot (robotic rotations)"
+  crystalaura: "Crystal aura"
+  autoblock: "AutoBlock"
+  criticals: "Criticals"
+  velocity: "Anti knockback"
+  mace:
+    default: "Mace exploit"
+    fakefall: "Mace kill (fake fall)"
+  flight:
+    default: "Fly"
+    hover: "Fly (hover)"
+    glide: "Glide / slow fall"
+    spider: "Spider"
+    highjump: "High jump"
+    minijump: "Criticals / low hop"
+    fastfall: "Fast fall"
+  speed:
+    default: "Speed"
+    strafe: "Air strafe"
+  nofall: "NoFall"
+  timer: "Timer"
+  step: "Step"
+  jesus: "Jesus"
+  fastclimb: "Fast ladder"
+  elytrafly: "Elytra fly"
+  noslow: "NoSlow"
+  sprint: "Omni sprint"
+  phase: "Phase / NoClip"
+  boatfly: "Boat fly"
+  inventorymove:
+    default: "Inventory move"
+    action: "Inventory macro (auto armor / auto totem)"
+    post: "Inventory macro (auto armor / auto totem)"
+    combo: "Inventory macro (auto armor / auto totem)"
+  badpackets:
+    postuse: "Auto pot / silent rotations"
+    postdig: "Silent rotations"
+    postinteract: "Silent rotations"
+    multi: "Blink / fake rotations"
+  fastbow: "Fast bow"
+  clientbrand: "Hacked client"
+  fastbreak: "Fast break"
+  nuker: "Nuker"
+  blockreach: "Block reach"
+  interact: "Ghost hand"
+  fastplace: "Fast place"
+  scaffold: "Scaffold"
+  xray: "X-Ray (suspected)"
+  autoclicker: "Auto clicker"
+  autototem: "Auto totem"
+  inventorymacro: "Chest stealer"
+  hotbarmacro:
+    default: "Silent swap"
+    spam: "Hotbar macro"
+    attributeswap: "Auto attribute swap"
+    stunslam: "Auto stun slam"
+  autofish: "Auto fish"
+  chat: "Chat spam / macro"

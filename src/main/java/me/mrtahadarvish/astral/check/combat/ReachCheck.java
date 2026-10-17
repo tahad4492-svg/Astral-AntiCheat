@@ -61,9 +61,12 @@ public final class ReachCheck extends Check {
             }
         }
 
+        // the client sees its own vehicle late: its eyes trail the seat by (ping + lerp) x vehicle speed
+        boolean riding = data.recentlyRode();
+        double seatLag = riding ? Math.min(6.0, (data.deltaXZ + Math.abs(data.deltaY)) * (data.pingTicks() + 4)) : 0.0;
         Buffer buffer = data.buffer("reach");
-        if (best > range + tolerance) {
-            boolean cancel = best > range + tolerance + 0.3;
+        if (best > range + tolerance + seatLag) {
+            boolean cancel = !riding && best > range + tolerance + 0.3;
             if (buffer.increase() >= maxBuffer) {
                 if (flag(data, best > range + 1.0 ? "Blatant" : "Distance",
                         "reach=" + format(best) + " max=" + format(range) + " ping=" + data.ping())) {

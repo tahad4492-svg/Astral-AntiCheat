@@ -6,10 +6,22 @@ package me.mrtahadarvish.astral.data;
  */
 public final class Buffer {
 
+    private final PlayerData owner;
     private double value;
+
+    public Buffer() {
+        this(null);
+    }
+
+    Buffer(PlayerData owner) {
+        this.owner = owner;
+    }
 
     public double increase(double amount) {
         value += amount;
+        if (owner != null && amount > 0.0) {
+            owner.bufferIncreases++;
+        }
         return value;
     }
 

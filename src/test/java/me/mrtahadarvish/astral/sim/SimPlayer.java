@@ -80,6 +80,11 @@ public final class SimPlayer {
      */
     public Float silentYaw, silentPitch;
 
+    /** Server side fall distance, added up from every movement packet like the server does. */
+    public double sFall;
+    /** Entity#setGravity - a plugin can turn gravity off. */
+    public boolean gravity = true;
+
     // ---------------------------------------------------------------- cheats
     /** Multiplies the horizontal movement (speed hack). */
     public double cheatSpeed = 1.0;
@@ -228,6 +233,7 @@ public final class SimPlayer {
             lastSentSprint = sprinting;
         }
         if (position) {
+            serverFall(y - sy, ground);
             sx = x;
             sy = y;
             sz = z;
@@ -243,11 +249,23 @@ public final class SimPlayer {
             lastSentPitch = sendPitch;
         }
         if (position || rotation || ground != lastSentOnGround) {
+            if (!position) {
+                serverFall(0.0, ground);
+            }
             sOnGround = ground;
             lastSentOnGround = ground;
         }
         if (position || rotation) {
             Sim.current().moved(this);
+        }
+    }
+
+    /** ServerPlayer#doCheckFallDamage: trusts the on ground flag of the packet. */
+    private void serverFall(double dy, boolean ground) {
+        if (ground) {
+            sFall = 0.0;
+        } else if (dy < 0.0) {
+            sFall -= dy;
         }
     }
 
@@ -263,6 +281,7 @@ public final class SimPlayer {
 
     /** Sends a raw position packet (cheat clients can send anything). */
     public void sendRawPosition(double px, double py, double pz, float pyaw, float ppitch, boolean ground) {
+        serverFall(py - sy, ground);
         sx = px;
         sy = py;
         sz = pz;
@@ -369,7 +388,11 @@ public final class SimPlayer {
             case "getNearbyEntities": return world.nearby(new Vector(sx, sy + 0.9, sz), (Double) a[0], (Double) a[1], (Double) a[2], player);
             case "getVelocity": return new Vector();
             case "getFoodLevel": return 20;
-            case "getFallDistance": return 0.0F;
+            case "getFallDistance": return (float) sFall;
+            case "setFallDistance": sFall = ((Number) a[0]).doubleValue(); return null;
+            case "hasGravity": return gravity;
+            case "isInWater": return world.type((int) Math.floor(sx), (int) Math.floor(sy), (int) Math.floor(sz)) == Material.WATER;
+            case "isInLava": return world.type((int) Math.floor(sx), (int) Math.floor(sy), (int) Math.floor(sz)) == Material.LAVA;
             case "hasPermission": return a[0] instanceof String s && permissions.contains(s);
             case "isOnline", "isValid": return true;
             case "getClientBrandName": return brand;

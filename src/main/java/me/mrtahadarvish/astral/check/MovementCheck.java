@@ -22,16 +22,26 @@ public abstract class MovementCheck extends Check implements TickCheck {
         if (!shouldCheck(data)) {
             return;
         }
+        int increases = data.bufferIncreases;
         handle(data);
+        if (data.bufferIncreases != increases) {
+            data.movementSuspicious = true;
+        }
     }
 
     protected abstract void handle(PlayerData data);
 
     /**
      * Situations where vanilla physics are replaced by something Astral does not simulate
-     * (creative flight, elytra, vehicles, teleports ...).
+     * (creative flight, elytra, vehicles, teleports, moving entity platforms ...). No gravity and
+     * slow falling are simulated, not exempted.
      */
     protected boolean exempt(PlayerData data) {
+        return exempt(data, false);
+    }
+
+    /** ignoreVehicleExit: still riding counts, the window after getting off does not. */
+    protected boolean exempt(PlayerData data, boolean ignoreVehicleExit) {
         Player player = data.player();
         if (data.skipMovement || !data.chunkLoaded || data.inVehicle || data.gliding || data.riptiding || data.flying) {
             return true;
@@ -43,7 +53,7 @@ public abstract class MovementCheck extends Check implements TickCheck {
         return since(data.lastTeleport) < 5
                 || since(data.lastFailMove) < 5
                 || since(data.lastFlight) < 40
-                || since(data.lastVehicle) < 20
+                || (!ignoreVehicleExit && since(data.lastVehicle) < data.vehicleExitTicks())
                 || since(data.lastRiptide) < 40
                 || since(data.lastGlide) < 20
                 || since(data.lastPiston) < 20
@@ -52,6 +62,7 @@ public abstract class MovementCheck extends Check implements TickCheck {
                 || since(data.lastGameMode) < 20
                 || since(data.lastGhostBlock) < 20
                 || since(data.lastSpear) < 30
+                || since(data.lastEntityPlatform) < 20
                 || since(data.lastExplosion) < 30 + data.pingTicks();
     }
 

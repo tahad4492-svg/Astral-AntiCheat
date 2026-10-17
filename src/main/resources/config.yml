@@ -1,15 +1,21 @@
 # =====================================================================
 #                     Astral AntiCheat - Paper 1.21.11
 # =====================================================================
-#  WATCH MODE (default)
-#  Astral only WATCHES. Nobody is kicked, banned, set back or blocked.
-#  Staff with astral.alerts get an alert for every cheat, and every flag
-#  is written to plugins/Astral/logs/<date>.log. Use /astral info,
-#  /astral logs and /astral gui to see who is cheating.
+#  BLOCK MODE (default)
+#  Astral blocks cheats: hits of combat cheaters do not register, flyers /
+#  speeders are pulled back, silent swaps and macros are cancelled.
+#  Nobody is kicked or banned automatically. Staff with astral.alerts get ONE
+#  short alert line per player that says what they might be using, and every
+#  flag is written to plugins/Astral/logs/<date>.log.
 #
-#  Want Astral to also block cheats later? Set settings.mitigation: true.
+#  Only want to watch? Set settings.mitigation: false.
 #  Want automatic punishments? Set punishments.enabled: true and give a
 #  check "punish: true" + punish-commands.
+#
+#  Minigames that move players themselves (battle bus, launch pads, parkour
+#  boosters, cutscenes): riding / standing on entities, plugin teleports and
+#  plugin velocity are handled automatically. For anything else use
+#  settings.exempt-worlds or "/astral exempt <player> <seconds>".
 #
 #  Every check has:
 #    enabled          - turn the check on / off  (also: /astral toggle <check>)
@@ -26,9 +32,17 @@
 #  /astral bypass <player> toggles it in-game.
 # =====================================================================
 
+# Do not change - used to update old config files
+config-version: 2
+
 settings:
-  # false = WATCH ONLY (alerts + logs). true = also block cheats (cancel hits, setbacks, cancel blocks...).
-  mitigation: false
+  # true = block cheats (cancel hits, setbacks, cancel blocks...). false = WATCH ONLY (alerts + logs).
+  mitigation: true
+  # A setback never teleports a player further than this (blocks). Further away = the illegal
+  # move is undone instead (back to the last checked position).
+  max-setback-distance: 12.0
+  # Worlds where Astral checks nobody (e.g. a lobby or a minigame world)
+  exempt-worlds: []
   # Skip checks while the server is lagging (prevents false flags)
   lag-protection:
     enabled: true
@@ -45,7 +59,18 @@ settings:
 alerts:
   # Staff with astral.alerts have alerts turned on when they join
   enabled-by-default: true
-  # Minimum time between two alerts for the same player + check (milliseconds)
+  # true = ONE line per player that says what they might be using (details in the hover).
+  # false = old style, one line per flag.
+  compact: true
+  # Flags are collected this long before the first line about a player is sent
+  gather-seconds: 1.0
+  # A new cheat of the same player is reported at most once every ... seconds
+  interval-seconds: 5
+  # The same cheats are only reminded every ... seconds (with the new count)
+  repeat-seconds: 30
+  # After this long without flags, a player's cheats count as new again
+  reset-after-seconds: 120
+  # (compact: false only) minimum time between two alerts for the same player + check (milliseconds)
   cooldown-ms: 400
   # Also print alerts to the console
   console: true
@@ -160,11 +185,12 @@ checks:
     # Minimum part of the horizontal knockback the player has to take (0.0 - 1.0)
     min-horizontal: 0.35
 
+  # Silent aim / robotic rotations block the player's hits for a while. GCD (aim assist) only alerts.
   aim:
     enabled: true
     alert-vl: 3.0
-    mitigate: false
-    mitigate-vl: 0.0
+    mitigate: true
+    mitigate-vl: 1.0
     punish: false
     punish-vl: 40
     punish-commands: []
@@ -172,6 +198,20 @@ checks:
     gcd: true          # rotations that do not match any real mouse sensitivity
     robotic: true      # perfectly repeated rotation steps (aimbots / rotation auras)
     silent-aim: true   # turns to the target for the hit and straight back (silent aim / silent rotations)
+
+  # Mace smash with a faked fall distance (extra up/down position packets before the hit = mace kill).
+  # When blocking the hit does not register.
+  mace:
+    enabled: true
+    alert-vl: 1.0
+    mitigate: true
+    mitigate-vl: 0.0
+    punish: false
+    punish-vl: 10
+    punish-commands: []
+    decay: 1.0
+    # blocks of fall distance the server may have more than Astral saw
+    tolerance: 1.5
 
   crystalaura:
     enabled: true
@@ -488,15 +528,31 @@ checks:
     # Clicks with an identical delay in a row needed to flag
     min-sequence: 9
 
+  # Silent swap / auto attribute swap / auto stun slam. When blocking: the impossible swap is
+  # cancelled, the hits after it do not register, and a caught player's swap hits do not
+  # register for block-ticks.
   hotbarmacro:
     enabled: true
-    alert-vl: 2.0
-    mitigate: false
+    alert-vl: 1.0
+    mitigate: true
     mitigate-vl: 0.0
     punish: false
     punish-vl: 25
     punish-commands: []
     decay: 2.0
+    # how long (ticks) the swap hits of a caught player do not register
+    block-ticks: 600
+    attribute-swap:
+      # swap hits (+ swap back) per sample window, two windows in a row are needed
+      samples: 6
+      # swap back must always take exactly the same number of ticks (+ this spread)
+      max-spread-ticks: 0
+      max-swap-back-ticks: 10
+      # share of weapon switch hits where the swap came in the same tick as the hit
+      min-same-tick-ratio: 0.9
+    stun-slam:
+      # mace hits exactly 1 tick after the axe broke the shield, in a row
+      in-a-row: 5
 
   autofish:
     enabled: true

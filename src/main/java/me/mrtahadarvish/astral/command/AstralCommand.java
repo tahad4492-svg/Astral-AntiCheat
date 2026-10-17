@@ -52,6 +52,7 @@ public final class AstralCommand implements TabExecutor {
             {"logs", "<player> [page]", "Recent flags of a player"},
             {"reset", "<player|*> [check]", "Reset violations"},
             {"bypass", "<player|list>", "Toggle anticheat bypass for a player"},
+            {"exempt", "<player|*> <seconds|off> [movement|combat|player|world|macro|all]", "Skip checks for a while (minigames, battle bus)"},
             {"kick", "<player> [reason]", "Kick a player with the Astral screen"},
             {"ban", "<player> [time] [reason]", "Ban a player (7d, 12h, 30m, perm)"},
             {"unban", "<player>", "Unban a player"},
@@ -97,6 +98,7 @@ public final class AstralCommand implements TabExecutor {
             case "logs" -> logs(sender, rest);
             case "reset" -> reset(sender, rest);
             case "bypass" -> bypass(sender, rest);
+            case "exempt" -> exempt(sender, rest);
             case "kick" -> kick(sender, rest);
             case "ban" -> ban(sender, rest);
             case "unban" -> unban(sender, rest);
@@ -121,7 +123,6 @@ public final class AstralCommand implements TabExecutor {
             case "alert", "notify" -> "alerts";
             case "check", "list" -> "checks";
             case "profile", "player", "lookup" -> "info";
-            case "exempt" -> "bypass";
             case "ss", "unfreeze" -> "freeze";
             case "teleport" -> "tp";
             case "menu", "panel" -> "gui";
@@ -509,6 +510,80 @@ public final class AstralCommand implements TabExecutor {
         plugin.logs().log("BYPASS " + name + " -> " + now + " by " + sender.getName());
     }
 
+    /**
+     * /astral exempt &lt;player|*&gt; &lt;seconds|off&gt; [category] - lets minigame plugins (battle bus,
+     * launchers, cutscenes) or staff switch checks off for a player for a while. Works from the
+     * console, so other plugins can run it as a command.
+     */
+    private void exempt(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            usage(sender, "exempt");
+            return;
+        }
+        List<Player> targets = new ArrayList<>();
+        if (args[0].equals("*") || args[0].equalsIgnoreCase("@a")) {
+            targets.addAll(Bukkit.getOnlinePlayers());
+        } else {
+            Player target = online(sender, args[0]);
+            if (target == null) {
+                return;
+            }
+            targets.add(target);
+        }
+        CheckCategory category = CheckCategory.MOVEMENT;
+        String categoryName = "movement";
+        if (args.length >= 3) {
+            categoryName = args[2].toLowerCase(Locale.ROOT);
+            if (categoryName.equals("all")) {
+                category = null;
+            } else {
+                category = null;
+                for (CheckCategory value : CheckCategory.values()) {
+                    if (value.display().equalsIgnoreCase(categoryName) || value.name().equalsIgnoreCase(categoryName)) {
+                        category = value;
+                    }
+                }
+                if (category == null) {
+                    send(sender, prefix() + "&cUnknown category &f" + args[2] + "&c. Use movement, combat, player, world, macro or all.");
+                    return;
+                }
+            }
+        }
+        boolean off = args[1].equalsIgnoreCase("off") || args[1].equals("0");
+        int ticks = 0;
+        if (!off) {
+            try {
+                ticks = (int) Math.round(Double.parseDouble(args[1]) * 20.0);
+            } catch (NumberFormatException exception) {
+                send(sender, prefix() + "&c" + args[1] + " is not a number of seconds.");
+                return;
+            }
+            if (ticks <= 0) {
+                off = true;
+            }
+        }
+        for (Player target : targets) {
+            PlayerData data = plugin.data().get(target);
+            if (data == null) {
+                continue;
+            }
+            if (off) {
+                data.clearExemptions();
+            } else {
+                data.exempt(category, ticks);
+            }
+        }
+        String who = targets.size() == 1 ? targets.getFirst().getName() : targets.size() + " players";
+        if (off) {
+            send(sender, prefix() + "&f" + who + " &ais checked again.");
+        } else {
+            send(sender, prefix() + "&f" + who + " &7is not checked (&f" + categoryName + "&7) for &f" + args[1] + "s&7.");
+        }
+        if (sender instanceof Player) {
+            plugin.logs().log("EXEMPT " + who + " " + (off ? "off" : args[1] + "s " + categoryName) + " by " + sender.getName());
+        }
+    }
+
     private void kick(CommandSender sender, String[] args) {
         if (args.length < 1) {
             usage(sender, "kick");
@@ -746,6 +821,7 @@ public final class AstralCommand implements TabExecutor {
                 case "version", "info", "violations", "logs", "kick", "ban", "freeze", "tp", "cps", "ping", "client" -> filter(players(), args[1]);
                 case "reset" -> filter(concat(players(), List.of("*")), args[1]);
                 case "bypass" -> filter(concat(players(), List.of("list")), args[1]);
+                case "exempt" -> filter(concat(players(), List.of("*")), args[1]);
                 case "toggle", "debug" -> filter(checkIds(), args[1]);
                 case "alerts" -> filter(List.of("on", "off"), args[1]);
                 case "checks" -> filter(Arrays.stream(CheckCategory.values()).map(c -> c.display().toLowerCase(Locale.ROOT)).toList(), args[1]);
@@ -753,10 +829,14 @@ public final class AstralCommand implements TabExecutor {
                 default -> List.of();
             };
         }
+        if (args.length == 4 && sub.equals("exempt")) {
+            return filter(List.of("movement", "combat", "player", "world", "macro", "all"), args[3]);
+        }
         if (args.length == 3) {
             return switch (sub) {
                 case "reset" -> filter(checkIds(), args[2]);
                 case "toggle" -> filter(List.of("on", "off"), args[2]);
+                case "exempt" -> filter(List.of("5", "10", "30", "60", "off"), args[2]);
                 case "ban" -> filter(List.of("1h", "12h", "1d", "7d", "30d", "perm"), args[2]);
                 case "kick" -> filter(List.of("Unfair Advantage", "Cheating"), args[2]);
                 default -> List.of();

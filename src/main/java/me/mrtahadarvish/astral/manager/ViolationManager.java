@@ -104,24 +104,43 @@ public final class ViolationManager {
         });
     }
 
-    /** Teleports a player back to the last legit position (movement mitigation). */
+    /**
+     * Movement mitigation: teleports the player back to the last position on the ground that
+     * passed every check. When that is far away (falling from a battle bus, long glides, a
+     * teleport into the air ...) only the illegal move is undone: back to the last checked
+     * position. A setback never moves a player more than settings.max-setback-distance.
+     */
     public void setback(PlayerData data) {
         if (!plugin.settings().mitigation) {
-            return;
-        }
-        Player player = data.player();
-        Location safe = data.lastSafe;
-        if (safe == null || safe.getWorld() == null || !safe.getWorld().equals(player.getWorld())) {
             return;
         }
         if (PlayerData.since(data.lastSetback) < 1) {
             return;
         }
+        Player player = data.player();
+        if (player.isInsideVehicle() || PlayerData.since(data.lastVehicle) < 2) {
+            return; // a teleport would pull the player off the vehicle (battle bus)
+        }
+        Location current = player.getLocation();
+        double max = plugin.settings().maxSetbackDistance;
+        Location target = null;
+        Location safe = data.lastSafe;
+        if (safe != null && safe.getWorld() != null && safe.getWorld().equals(current.getWorld())
+                && safe.distanceSquared(current) <= max * max) {
+            target = safe.clone();
+            player.setFallDistance(0.0F);
+        } else if (data.hasLegit && current.getWorld().getUID().equals(data.legitWorld)) {
+            Location legit = new Location(current.getWorld(), data.legitX, data.legitY, data.legitZ);
+            if (legit.distanceSquared(current) <= max * max) {
+                target = legit;
+            }
+        }
+        if (target == null) {
+            return;
+        }
         data.lastSetback = PlayerData.now();
-        Location target = safe.clone();
-        target.setYaw(player.getLocation().getYaw());
-        target.setPitch(player.getLocation().getPitch());
-        player.setFallDistance(0.0F);
+        target.setYaw(current.getYaw());
+        target.setPitch(current.getPitch());
         player.teleport(target, PlayerTeleportEvent.TeleportCause.PLUGIN);
     }
 

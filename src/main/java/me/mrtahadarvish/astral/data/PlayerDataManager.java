@@ -61,6 +61,16 @@ public final class PlayerDataManager {
         playerData.bypassChecks = checks;
     }
 
+    /** Boxes of every player for lag compensation (end of tick, labelled with the next tick). */
+    public void recordHistory(int tick) {
+        for (PlayerData playerData : data.values()) {
+            Player player = playerData.player();
+            if (player.isOnline()) {
+                playerData.history.add(tick, player.getBoundingBox());
+            }
+        }
+    }
+
     /** Runs every server tick. */
     public void tick() {
         int tick = Bukkit.getCurrentTick();
@@ -70,7 +80,6 @@ public final class PlayerDataManager {
             if (!player.isOnline()) {
                 continue;
             }
-            playerData.history.add(tick, player.getBoundingBox());
             if (refresh) {
                 refreshBypass(playerData);
             }
