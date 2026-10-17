@@ -2,10 +2,15 @@
 
 An anti-cheat and anti-macro plugin for **Paper 1.21.11** (Java 21), by MrTahaDarvish.
 
-**Astral watches, it does not punish.** Out of the box nobody is kicked, banned, set back or
-blocked. Staff get an alert for every cheat, and every flag is logged, so you can see exactly
-who is cheating and decide yourself. Blocking and automatic punishments can be turned on in
-`config.yml` if you ever want them.
+**Astral blocks cheats, it does not ban.** Out of the box the hits of combat cheaters do not
+register, flyers and speeders are pulled back, silent swaps, auto attribute swaps, auto stun
+slams and mace exploits are cancelled, and macros are stopped. Nobody is kicked or banned
+automatically. Staff get **one short alert line per player** that says what they might be
+using ("Steve may be using KillAura (silent rotations) x6, Silent swap x2"), and every flag is
+logged.
+
+Minigames that move players themselves (a battle royale **battle bus**, launch pads, rides,
+cutscenes) are handled automatically, see [Minigames and the battle bus](#minigames-and-the-battle-bus).
 
 Astral reads the exact position of every client tick. Since Minecraft 1.21.2 the client
 sends a "tick end" packet after each tick, and Paper exposes it as `ClientTickEndEvent`.
@@ -31,20 +36,78 @@ Optional: **ViaVersion** (shows the real client version of players on other vers
 
 ```bash
 mvn clean package
-# -> target/Astral-1.0.0.jar   (also runs the cheat-client simulation tests)
+# -> target/Astral-1.1.0.jar   (also runs the cheat-client simulation tests)
 ```
 
 ---
 
-## Watch mode vs block mode
+## Block mode vs watch mode
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `settings.mitigation` | `false` | `false` = **watch only** (alerts + logs). `true` = also block cheats: cancel hits, set back movement, cancel block breaks, etc. |
+| `settings.mitigation` | `true` | `true` = **block cheats**: cancel hits, set back movement, cancel swaps / block breaks / clicks. `false` = watch only (alerts + logs). |
+| `settings.max-setback-distance` | `12` | A setback never moves a player further than this. Further away (e.g. after a long fall from a bus) only the illegal move is undone. |
 | `punishments.enabled` | `false` | `false` = Astral **never** kicks or bans anyone by itself. |
 | `checks.<check>.punish` | `false` | Per-check auto punish (only used when `punishments.enabled` is on). |
 
 Staff can still kick or ban by hand with `/astral kick` and `/astral ban`.
+
+> **Updating from 1.0?** Astral 1.0 only watched. On the first start, 1.1 updates your
+> `config.yml` (`config-version: 2`): blocking is switched on, new options are added, your other
+> values are kept. Set `settings.mitigation: false` if you only want to watch.
+
+---
+
+## Compact alerts
+
+Staff with `astral.alerts` no longer get one chat line per flag. Astral groups the flags of a
+player and sends one line that says what he is most likely using:
+
+```
+[Astral] Steve may be using KillAura (silent rotations) x6, Silent swap x2 [VL 14.0 | 45ms | blocked]
+```
+
+Hover it for the details (every check and type, the last measurement, ping, TPS, client), click
+it to teleport. When lines are sent (`config.yml` -> `alerts`):
+
+| Option | Default | Meaning |
+|---|---|---|
+| `compact` | `true` | `false` = old style, one line per flag |
+| `gather-seconds` | `1` | The first flags of a player are collected this long, then sent as one line |
+| `interval-seconds` | `5` | A **new** cheat of the same player is reported at most this often |
+| `repeat-seconds` | `30` | The **same** cheats are only reminded this often (with the new count) |
+| `reset-after-seconds` | `120` | After this long without flags everything counts as new again |
+
+A cheater flagging 10 times a second for a minute gives 2 lines instead of 600. `/astral verbose`
+and `/astral debug <check>` still show every single flag. The names ("KillAura (silent
+rotations)", "Auto attribute swap" ...) can be changed in `messages.yml` under `cheat-names`.
+
+---
+
+## Minigames and the battle bus
+
+Battle royale buses, launch pads, rides and cutscenes move players in ways no client can. Astral
+recognises all the usual ways a plugin does that, with any ping:
+
+* **Riding** an entity the plugin moves (armor stand / display / minecart / boat seat, happy
+  ghast), and the jump off it: no flags while riding, the fall after it is checked normally.
+* **Standing on** a moving platform made of shulkers, boats or minecarts.
+* **Teleports every tick** along a route (Paper freezes the player until the client confirms a
+  teleport; Astral waits for that instead of seeing a hovering player).
+* **setVelocity every tick**, launch pads, double jump launchers (also when the plugin cancels
+  the flight toggle).
+* **setGravity(false)**, slow falling parachutes, levitation, gravity attribute changes (the
+  client gets them half a ping later, Astral allows both for that moment).
+* **Spectator** on the bus, back to survival in the air; elytra drops; plugin rockets.
+* Boats a plugin lifts or moves are never "BoatFly".
+* Setbacks never teleport a player back up to the bus or across the map.
+
+For anything else:
+
+* `settings.exempt-worlds: [lobby, bus_world]` - nobody is checked in these worlds.
+* `/astral exempt <player|*> <seconds|off> [movement|combat|player|world|macro|all]` - skip checks
+  for a while (default: movement). Works from the console, so a minigame can run it, e.g.
+  `astral exempt %player% 20 movement` when a player boards the bus.
 
 ---
 
@@ -66,6 +129,7 @@ Main command: `/astral` (aliases: `/astralac`, `/anticheat`, `/ac`)
 | `/astral logs <player> [page]` | Recent flags (hover for details) | `astral.command.logs` |
 | `/astral reset <player\|*> [check]` | Reset violations | `astral.command.reset` |
 | `/astral bypass <player\|list>` | Toggle anti-cheat bypass for a player (saved) | `astral.command.bypass` |
+| `/astral exempt <player\|*> <seconds\|off> [category]` | Skip checks for a while (minigames, battle bus). Console friendly | `astral.command.exempt` |
 | `/astral kick <player> [reason]` | Kick with the Astral screen (manual only) | `astral.command.kick` |
 | `/astral ban <player> [time] [reason]` | Ban (`30m`, `12h`, `7d`, `1mo`, `perm`) (manual only) | `astral.command.ban` |
 | `/astral unban <player>` | Unban | `astral.command.unban` |
@@ -98,7 +162,7 @@ Main command: `/astral` (aliases: `/astralac`, `/anticheat`, `/ac`)
 
 ## Checks
 
-The "When blocking" column only applies with `settings.mitigation: true`. In the default
+The "When blocking" column is what happens with `settings.mitigation: true` (the default). In
 watch mode every check only alerts and logs.
 
 | Category | Check | Detects | When blocking |
@@ -106,7 +170,8 @@ watch mode every check only alerts and logs.
 | Combat | **Reach** | Hitting further than the vanilla range (lag compensated, spear `attack_range` aware) | Cancels the hit |
 | Combat | **Hitbox** | Hits where the crosshair never pointed at the hitbox (hitbox expand, auras without rotations) | Blocks attacks |
 | Combat | **KillAura** | Multi (2 targets in 1 tick), **Post** (attack after the movement packet = silent rotations), **Switch** (snapping between targets), NoSwing, Walls | Cancels / blocks attacks |
-| Combat | **Aim** | **SilentAim** (flick to the target and straight back), GCD (rotations no mouse sensitivity can make), Robotic (identical steps) | Flag only |
+| Combat | **Aim** | **SilentAim** (flick to the target and straight back), GCD (rotations no mouse sensitivity can make), Robotic (identical steps) | SilentAim / Robotic: hits stop registering for a while. GCD: alert only |
+| Combat | **Mace** | **FakeFall**: mace smash with a fall distance the player never fell (extra up/down packets before the hit = mace kill) | Cancels the smash |
 | Combat | **CrystalAura** | Breaking an end crystal in the same tick it was placed (predict) | Cancels the hit |
 | Combat | **AutoBlock** | Attacking while blocking, eating or drawing a bow | Cancels the hit |
 | Combat | **Criticals** | Critical hits while standing on the ground (packet crits) | Cancels the hit |
@@ -122,7 +187,7 @@ watch mode every check only alerts and logs.
 | Movement | **NoSlow** | Full speed while eating / blocking / sneaking | Setback |
 | Movement | **OmniSprint** | Sprinting backwards / sideways (key input) or while starving | Stops sprint + setback |
 | Movement | **Phase** | Moving through solid blocks, ending up inside a block (noclip / vclip) | Setback |
-| Movement | **BoatFly** | Boats rising in the air | Ejects + resets boat |
+| Movement | **BoatFly** | A boat the player drives rising in the air (boats a plugin moves are ignored) | Puts the boat back (nobody is thrown out) |
 | Player | **InventoryMove** | Moving / turning with an inventory open, inventory clicks in the same tick as attacks or after the movement packet (inventory macros) | Cancels the click |
 | Player | **BadPackets** | Using items, digging or interacting after the movement packet (auto pot, silent rotation macros); more than one movement packet in a tick (rotate-act-rotate back, blink) | Cancels the action |
 | Player | **FastBow** | Bow spam | Cancels the shot |
@@ -134,8 +199,8 @@ watch mode every check only alerts and logs.
 | World | **FastPlace** | Too many blocks per tick / second, robotic timing | Cancels |
 | World | **Scaffold** | Air place, clicking hidden faces, placing without looking at the block, placing after the movement packet | Cancels / blocks placing |
 | World | **XRay** | Rare ore ratio far above normal | Alert only |
-| Macro | **AutoClicker** | Sustained inhuman CPS, and the repeating rhythm of fixed-delay clickers (any CPS) | Cancels hits above `cancel-cps` |
-| Macro | **SilentSwap** | Switching hotbar slot in the same tick as an attack / use (swap macros, auto weapon, mace swap), slot switches after the movement packet, slot spam | Flag only |
+| Macro | **AutoClicker** | Sustained inhuman CPS, and the repeating rhythm of fixed-delay clickers (any CPS) | Hits stop registering for a while |
+| Macro | **SilentSwap** | **SilentSwap**: slot switch after an attack / use in the same tick (switch, hit, switch back). **AttributeSwap**: swap to the other weapon in the hit tick and swap back a fixed time later, every time (auto attribute swap). **StunSlam**: axe breaks the shield + swap to the mace in the same tick (auto stun slam), or the mace always exactly 1 tick after the axe. Post / Spam slot switches | The impossible swap is cancelled and the hits after it do not register; a caught attribute swapper / stun slammer's swap hits do not register for 30 s. The 1-tick stun slam streak only alerts (`stun-slam.block-streaks`) |
 | Macro | **AutoTotem** | Totem put back in the off-hand a few ticks after popping | Cancels the click |
 | Macro | **ChestStealer** | Container looting with perfectly timed shift clicks | Cancels the click |
 | Macro | **AutoFish** | Robotic fishing reaction times | Flag only |
@@ -145,8 +210,14 @@ watch mode every check only alerts and logs.
 
 * Lag protection: no flags while the server TPS is below `settings.lag-protection.min-tps`.
 * Exemptions for teleports, knockback, explosions / wind charges, elytra, riptide, vehicles,
-  pistons, slime / honey / beds, liquids, ladders, cobwebs, powder snow, ghost blocks, spears.
+  moving entity platforms, pistons, slime / honey / beds, liquids, ladders, cobwebs, powder
+  snow, ghost blocks, spears. Windows scale with the player's ping.
+* No gravity, slow falling, levitation and gravity attribute changes are simulated, including
+  the half-ping delay before the client applies them.
 * Every check uses a buffer, so a single odd tick never flags.
+* Combat checks only block when the order of packets is impossible for a vanilla client, or a
+  pattern repeated many times; players on clients older than 1.21.2 (ViaVersion) are not judged
+  by packet order at all.
 * The violation level (VL) decays over time (`decay` per check).
 
 ---
@@ -160,76 +231,24 @@ post-packet auras look exactly like they do on a real server.
 
 * **Legit players** (wandering on terrain, bunny hopping, ice tunnels, long falls, human PvP
   fights with knockback, building, mining, crystal PvP, eating while walking, hotbar
-  scrolling, inventory use) must produce **zero** flags.
+  scrolling, inventory use, mace smashes, attribute swapping and stun slams by hand) must
+  produce **zero** flags.
+* **Battle bus** scenarios at 50 to 800 ms ping (riding the bus, standing on a moving shulker
+  floor, teleported / pushed along the route, gravity off, spectator, slow falling parachute,
+  elytra drop, launch pads, a boat a plugin lifts) must produce **zero** flags and **zero**
+  setbacks with blocking on. The same scenarios against Astral 1.0 fail 10 times (gravity off,
+  slow falling, launch pads and teleport streams at high ping), which is the kind of flood
+  servers with a battle bus saw.
 * **Cheat clients** (flight, speed, bhop, timer, phase, blink, reach, hitbox, kill aura,
-  silent aim, silent rotations, silent swap, mace swap, auto clicker, auto totem, chest stealer,
-  scaffold, nuker, auto pot and more) must be flagged by the right check.
+  silent aim, silent rotations, silent swap, auto attribute swap, auto stun slam, mace kill,
+  auto clicker, auto totem, chest stealer, scaffold, nuker, auto pot and more) must be flagged by
+  the right check, and with blocking on their hits must stop registering / they get pulled back.
+* **Alerts**: 600 flags in a minute must give at most 3 alert lines.
 * **Watch mode** is tested too: a cheater is flagged but never cancelled, set back or kicked.
 
 After a run the full table is written to `target/astral-test-report.md`.
 
-**Result of the last run: 75 / 75 scenarios passed** (19 legit scenarios with zero flags, 53 cheats caught, 3 mode / mixed checks).
-
-| Cheat simulated | Result | Flagged as |
-|---|---|---|
-| Aimbot / aim assist (rotations without mouse steps) | PASS | Aim(GCD), Hitbox(Miss), Reach(Blatant), Reach(Distance) |
-| Air jump / jetpack | PASS | Flight(Ascend) |
-| Air strafe | PASS | Speed(Strafe) |
-| AirPlace (placing against air) | PASS | BlockReach(Place), Scaffold(Face), Scaffold(Rotation) |
-| Attribute / mace swap after the hit | PASS | SilentSwap(SilentSwap) |
-| Aura without rotations (hits outside the crosshair) | PASS | Hitbox(Miss) |
-| Auto clicker 12.5 CPS fixed delay | PASS | AutoClicker(Pattern) |
-| Auto clicker 40 CPS | PASS | AutoClicker(CPS) |
-| Auto pot (use item after the movement packet) | PASS | BadPackets(Multi), BadPackets(PostUse) |
-| AutoBlock (hit while blocking) | PASS | AutoBlock(Shield) |
-| AutoFish (same reaction every bite) | PASS | AutoFish(Reaction) |
-| AutoTotem (totem back in 1 tick) | PASS | AutoTotem(Speed) |
-| Bhop speed x1.25 | PASS | Speed(Limit) |
-| Blink (movement held back, then sent at once) | PASS | BadPackets(Multi), Speed(Limit) |
-| BlockReach (7 blocks) | PASS | BlockReach(Break) |
-| Chest stealer (perfect 2 tick delay) | PASS | ChestStealer(Steal) |
-| Crystal aura (ID predict / instant break) | PASS | CrystalAura(Predict) |
-| ElytraFly (hovering) | PASS | ElytraFly(Hover) |
-| FastBow (20 arrows per second) | PASS | FastBow(Rate) |
-| FastBreak (4x speed mine) | PASS | FastBreak(Time) |
-| FastClimb (ladder) | PASS | FastClimb(Speed) |
-| FastPlace (a block every tick) | PASS | FastPlace(Robotic), Scaffold(Face), Scaffold(Rotation) |
-| Fly (hover) | PASS | Flight(Hover) |
-| Fly (vertical / creative fly) | PASS | Flight(Ascend) |
-| GhostHand (mining behind a wall) | PASS | GhostHand(Break) |
-| Glide / slow fall | PASS | Flight(Glide) |
-| Hacked client brand / channel | PASS | ClientBrand(Brand), ClientBrand(Channel) |
-| Hotbar spam (4 slots per tick) | PASS | SilentSwap(Spam) |
-| Inventory packets while attacking (auto armor / auto totem) | PASS | InventoryMove(Action), InventoryMove(Combo) |
-| InventoryMove (clicking while running) | PASS | InventoryMove(Input) |
-| Jesus (walking on water) | PASS | Flight(Hover), Jesus(Walk), NoFall(GroundSpoof) |
-| Multi aura (2 targets per tick) | PASS | Hitbox(Miss), KillAura(Multi) |
-| NoFall (on-ground spoof) | PASS | NoFall(GroundSpoof) |
-| NoSlow (eating at full speed) | PASS | NoSlow(Item) |
-| NoSwing | PASS | KillAura(NoSwing) |
-| Nuker (3 blocks per tick) | PASS | Nuker(Multi), Nuker(Speed) |
-| OmniSprint (sprinting backwards) | PASS | OmniSprint(Omni) |
-| Packet criticals | PASS | Criticals(Ground) |
-| Phase / NoClip through a wall | PASS | BadPackets(Multi), Phase(Clip), Speed(Limit) |
-| Reach 4.2 blocks | PASS | Reach(Distance) |
-| Rotation aura with constant steps | PASS | Aim(Robotic), Hitbox(Miss) |
-| Scaffold rotate-place-rotate back (extra rotation packet) | PASS | BadPackets(Multi), Scaffold(Post) |
-| Scaffold with silent rotations (place after the movement packet) | PASS | Scaffold(Post) |
-| Silent aim (flick to target and back) | PASS | Aim(SilentAim) |
-| Silent rotation aura (aim inside the movement packet) | PASS | Aim(SilentAim), KillAura(Post) |
-| Silent rotation aura (attack after movement) | PASS | Aim(SilentAim), KillAura(Post) |
-| Silent swap (switch, hit, switch back) | PASS | SilentSwap(SilentSwap) |
-| Slot swap after the movement packet | PASS | SilentSwap(Post) |
-| Speed x1.5 (ground) | PASS | Speed(Limit) |
-| Step (1 block) | PASS | Flight(HighJump), Step(Height) |
-| Switch aura (front/back every tick) | PASS | Aim(Robotic), KillAura(Switch) |
-| Timer 1.25x | PASS | Timer(Balance) |
-| Velocity / anti knockback | PASS | Velocity(Vertical) |
-| Mixed: Human vs aura user in one fight: only the aura user flagged | PASS | human: no flags / aura: Aim(SilentAim)  KillAura(Post) |
-| Mode: Watch mode: reach is flagged but the hits are NOT cancelled | PASS | Hitbox(Miss)  Reach(Blatant) |
-| Mode: Block mode (mitigation: true): reach hits cancelled, flyer pulled back down | PASS | Flight(Ascend) |
-
-Legit scenarios (all with **no flags**): building a wall and mining it; crystal PvP at human speed; eating while walking; human PvP fight, attacker; human PvP fight, defender; ice tunnel jump boosting (123.73 blocks); inventory sorting + manual totem; random wandering; sprint jumping non stop; switching hotbar slots then hitting; walking off a 26 block tower.
+<!-- TEST-RESULTS -->
 
 > These are simulations of how cheat clients behave, not recordings of real clients on a
 > real server. They prove the checks react to those behaviours and stay quiet for normal

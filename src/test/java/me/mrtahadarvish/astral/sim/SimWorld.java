@@ -63,6 +63,23 @@ public final class SimWorld {
                     if (a.length == 4 && a[0] instanceof Location center) {
                         yield nearby(center.toVector(), (Double) a[1], (Double) a[2], (Double) a[3], null);
                     }
+                    if (a.length >= 1 && a[0] instanceof BoundingBox area) {
+                        @SuppressWarnings("unchecked")
+                        java.util.function.Predicate<Entity> filter = a.length > 1 && a[1] != null
+                                ? (java.util.function.Predicate<Entity>) a[1] : e -> true;
+                        List<Entity> out = new ArrayList<>();
+                        for (SimPlayer p : players) {
+                            if (p.player.getBoundingBox().overlaps(area) && filter.test(p.player)) {
+                                out.add(p.player);
+                            }
+                        }
+                        for (Entity entity : entities) {
+                            if (entity.getBoundingBox().overlaps(area) && filter.test(entity)) {
+                                out.add(entity);
+                            }
+                        }
+                        yield out;
+                    }
                     yield new ArrayList<Entity>();
                 }
                 case "hashCode" -> System.identityHashCode(invocation.getMock());

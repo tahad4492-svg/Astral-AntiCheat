@@ -35,7 +35,8 @@ import java.util.Deque;
  *       half of the time and swap back with a varying delay.</li>
  *   <li>StunSlam - axe hit that disables a shield and a swap to the mace for the smash in the same
  *       tick (impossible, blocked right away), or the mace hit exactly one tick after the axe hit
- *       for many stun slams in a row (humans are sometimes slower).</li>
+ *       for many stun slams in a row (alert only by default: very fast players get one tick now
+ *       and then).</li>
  * </ul>
  * Once a player is caught, his swap hits / stun slam hits do not register for a while.
  */
@@ -48,6 +49,7 @@ public final class HotbarMacroCheck extends Check {
     private int swapBackSpread;
     private double minSameTickRatio;
     private int stunSlamCount;
+    private boolean blockStunSlamStreaks;
     private int blockTicks;
 
     public HotbarMacroCheck(AstralAntiCheat plugin) {
@@ -61,7 +63,8 @@ public final class HotbarMacroCheck extends Check {
         maxSwapBackDelay = Math.max(1, option("attribute-swap.max-swap-back-ticks", 10));
         swapBackSpread = Math.max(0, option("attribute-swap.max-spread-ticks", 0));
         minSameTickRatio = option("attribute-swap.min-same-tick-ratio", 0.9);
-        stunSlamCount = Math.max(3, option("stun-slam.in-a-row", 5));
+        stunSlamCount = Math.max(3, option("stun-slam.in-a-row", 8));
+        blockStunSlamStreaks = option("stun-slam.block-streaks", false);
         blockTicks = Math.max(20, option("block-ticks", 600));
     }
 
@@ -154,7 +157,8 @@ public final class HotbarMacroCheck extends Check {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    // not ignoreCancelled: an axe hit that was already blocked still tells what the macro does next
+    @EventHandler(priority = EventPriority.HIGH)
     public void onAttack(PrePlayerAttackEntityEvent event) {
         Player player = event.getPlayer();
         PlayerData data = data(player);
@@ -163,6 +167,14 @@ public final class HotbarMacroCheck extends Check {
         }
         State state = data.state(State.class, State::new);
         int tick = data.clientTicks;
+        if (event.isCancelled()) {
+            ItemStack hand = player.getInventory().getItemInMainHand();
+            if (hand.getType().name().endsWith("_AXE") && event.getAttacked() instanceof Player victim && victim.isBlocking()) {
+                state.axeTick = tick;
+                state.axeTarget = victim.getEntityId();
+            }
+            return;
+        }
 
         // hits after an impossible swap in the same tick never count
         if (mitigate() && state.silentSwapTick == tick) {
@@ -202,8 +214,9 @@ public final class HotbarMacroCheck extends Check {
             state.fastStunSlams = delay <= 1 ? state.fastStunSlams + 1 : 0;
             if (state.fastStunSlams >= stunSlamCount) {
                 state.fastStunSlams = 0;
+                // very fast players manage one tick now and then, so this only alerts by default
                 if (flag(data, "StunSlam", stunSlamCount + " stun slams in a row with the mace hit exactly "
-                        + delay + " tick after the axe hit")) {
+                        + delay + " tick after the axe hit") && blockStunSlamStreaks) {
                     state.stunSlammerUntil = PlayerData.now() + blockTicks;
                     plugin.checks().lockCombat(data);
                 }

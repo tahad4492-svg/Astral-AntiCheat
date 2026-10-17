@@ -60,6 +60,8 @@ public final class SimPlayer {
     public int ping = 50;
     public GameMode gameMode = GameMode.SURVIVAL;
     public Material mainHand = Material.DIAMOND_SWORD;
+    /** Hotbar contents (null = use mainHand for that slot). */
+    public final Material[] hotbar = new Material[9];
     public String brand = "vanilla";
     public boolean gliding;
     public final Set<String> permissions = new HashSet<>();
@@ -82,8 +84,25 @@ public final class SimPlayer {
 
     /** Server side fall distance, added up from every movement packet like the server does. */
     public double sFall;
-    /** Entity#setGravity - a plugin can turn gravity off. */
+    /** Entity#setGravity - a plugin can turn gravity off (server side / what the client applied). */
     public boolean gravity = true;
+    public boolean clientGravity = true;
+
+    // ---------------------------------------------------------------- minigames (battle bus ...)
+    /** Vehicle the player rides, null = none. The server moves passengers, the client follows. */
+    public SimEntity vehicle;
+    /** Potion effects ("slow_falling", "levitation") the server knows / the client already applies. */
+    public final Set<String> effects = new HashSet<>();
+    public final Set<String> clientEffects = new HashSet<>();
+    /** flying = client side flight, sFlying = what the server allows / knows. */
+    public boolean flying, sFlying, allowFlight;
+    /** Teleports Astral itself did (setbacks). */
+    public int astralTeleports;
+    /** Paper ignores movement until the client confirms the newest teleport. */
+    private Location pendingTeleport;
+    private int confirmIn;
+    private int clientTick;
+    private final List<Object[]> scheduled = new java.util.ArrayList<>();
 
     // ---------------------------------------------------------------- cheats
     /** Multiplies the horizontal movement (speed hack). */
@@ -127,8 +146,53 @@ public final class SimPlayer {
         return new BoundingBox(x - 0.3, y, z - 0.3, x + 0.3, y + h, z + 0.3);
     }
 
+    /** Runs a change on the client after some client ticks (it travels through the network). */
+    public void later(int ticks, Runnable change) {
+        if (ticks <= 0) {
+            change.run();
+        } else {
+            scheduled.add(new Object[]{clientTick + ticks, change});
+        }
+    }
+
+    /** Item in the selected hotbar slot. */
+    public Material held() {
+        return slot >= 0 && slot < 9 && hotbar[slot] != null ? hotbar[slot] : mainHand;
+    }
+
+    /** One way network delay in client ticks. */
+    public int halfRtt() {
+        return (int) Math.ceil(ping / 100.0);
+    }
+
     /** One vanilla client tick of movement (LivingEntity#aiStep + travel). */
     public void physicsTick() {
+        clientTick++;
+        for (java.util.Iterator<Object[]> it = scheduled.iterator(); it.hasNext(); ) {
+            Object[] task = it.next();
+            if ((int) task[0] <= clientTick) {
+                it.remove();
+                ((Runnable) task[1]).run();
+            }
+        }
+        if (pendingTeleport != null && --confirmIn <= 0) {
+            // the teleport arrived: snap there and confirm it (the confirm carries this position)
+            x = lastSentX = pendingTeleport.getX();
+            y = lastSentY = pendingTeleport.getY();
+            z = lastSentZ = pendingTeleport.getZ();
+            mx = my = mz = 0.0;
+            pendingTeleport = null;
+        }
+        if (vehicle != null) {
+            return; // passengers are moved by their vehicle
+        }
+        if (gliding) {
+            glideTick();
+            return;
+        }
+        if (flying) {
+            my = jump ? 0.375 : sneaking ? -0.375 : my * 0.6;
+        }
         if (Math.abs(mx) < 0.003) {
             mx = 0.0;
         }
@@ -207,8 +271,13 @@ public final class SimPlayer {
         if (collY) {
             my = 0.0;
         }
-        if (cheatFlyY == null) {
-            my = (my - 0.08) * 0.98;
+        if (cheatFlyY == null && !flying) {
+            if (clientEffects.contains("levitation")) {
+                my += (0.05 - my) * 0.2;
+            } else if (clientGravity) {
+                my -= clientEffects.contains("slow_falling") && my <= 0.0 ? 0.01 : 0.08;
+            }
+            my *= 0.98;
         }
         mx *= friction * 0.91;
         mz *= friction * 0.91;
@@ -217,8 +286,72 @@ public final class SimPlayer {
         }
     }
 
+    /** LivingEntity#updateFallFlyingMovement (elytra), then the move. */
+    private void glideTick() {
+        double yawR = Math.toRadians(yaw);
+        double pitchR = Math.toRadians(pitch);
+        double lx = -Math.sin(yawR) * Math.cos(pitchR);
+        double ly = -Math.sin(pitchR);
+        double lz = Math.cos(yawR) * Math.cos(pitchR);
+        double horizontalLook = Math.sqrt(lx * lx + lz * lz);
+        double horizontalSpeed = Math.sqrt(mx * mx + mz * mz);
+        double gravityNow = !clientGravity ? 0.0 : clientEffects.contains("slow_falling") && my <= 0.0 ? 0.01 : 0.08;
+        double cos2 = Math.cos(pitchR) * Math.cos(pitchR);
+        double length = Math.sqrt(lx * lx + ly * ly + lz * lz);
+        cos2 *= Math.min(1.0, length / 0.4);
+        my += gravityNow * (-1.0 + cos2 * 0.75);
+        if (my < 0.0 && horizontalLook > 0.0) {
+            double d = my * -0.1 * cos2;
+            mx += lx * d / horizontalLook;
+            my += d;
+            mz += lz * d / horizontalLook;
+        }
+        if (pitchR < 0.0 && horizontalLook > 0.0) {
+            double d = horizontalSpeed * -Math.sin(pitchR) * 0.04;
+            mx += -lx * d / horizontalLook;
+            my += d * 3.2;
+            mz += -lz * d / horizontalLook;
+        }
+        if (horizontalLook > 0.0) {
+            mx += (lx / horizontalLook * horizontalSpeed - mx) * 0.1;
+            mz += (lz / horizontalLook * horizontalSpeed - mz) * 0.1;
+        }
+        mx *= 0.99;
+        my *= 0.98;
+        mz *= 0.99;
+        if (cheatFlyY != null) {
+            my = cheatFlyY; // elytra fly cheats override the glide physics
+        }
+        Vector wanted = new Vector(mx * cheatSpeed, my, mz * cheatSpeed);
+        Vector moved = world.collide(clientBox(), wanted, false, stepHeight);
+        x += moved.getX();
+        y += moved.getY();
+        z += moved.getZ();
+        onGround = moved.getY() != wanted.getY() && wanted.getY() < 0.0;
+        if (moved.getX() != wanted.getX()) {
+            mx = 0.0;
+        }
+        if (moved.getZ() != wanted.getZ()) {
+            mz = 0.0;
+        }
+        if (moved.getY() != wanted.getY()) {
+            my = 0.0;
+        }
+    }
+
+    /** The server moves a passenger with its vehicle (no movement packets). */
+    public void ride(double px, double py, double pz) {
+        x = sx = lastSentX = eventX = px;
+        y = sy = lastSentY = eventY = py;
+        z = sz = lastSentZ = eventZ = pz;
+        mx = my = mz = 0.0;
+    }
+
     /** LocalPlayer#sendPosition: sends the movement packet the server will process. */
     public void sendMovement() {
+        if (vehicle != null) {
+            return; // the client sends vehicle / rotation packets only
+        }
         positionReminder++;
         double dx = x - lastSentX;
         double dy = y - lastSentY;
@@ -231,6 +364,12 @@ public final class SimPlayer {
         if (sprinting != lastSentSprint) {
             sSprinting = sprinting;
             lastSentSprint = sprinting;
+        }
+        if (position && pendingTeleport != null) {
+            position = false; // Paper ignores moves until the teleport is confirmed
+            lastSentX = x;
+            lastSentY = y;
+            lastSentZ = z;
         }
         if (position) {
             serverFall(y - sy, ground);
@@ -271,16 +410,21 @@ public final class SimPlayer {
 
     /** Server side teleport (also moves the client). */
     public void teleportTo(Location location) {
-        x = sx = lastSentX = eventX = location.getX();
-        y = sy = lastSentY = eventY = location.getY();
-        z = sz = lastSentZ = eventZ = location.getZ();
+        sx = eventX = location.getX();
+        sy = eventY = location.getY();
+        sz = eventZ = location.getZ();
         eventYaw = syaw;
         eventPitch = spitch;
-        mx = my = mz = 0.0;
+        // the client gets there half a round trip later; until it confirms, Paper ignores its moves
+        pendingTeleport = location.clone();
+        confirmIn = Math.max(1, halfRtt());
     }
 
     /** Sends a raw position packet (cheat clients can send anything). */
     public void sendRawPosition(double px, double py, double pz, float pyaw, float ppitch, boolean ground) {
+        if (pendingTeleport != null) {
+            return;
+        }
         serverFall(py - sy, ground);
         sx = px;
         sy = py;
@@ -378,7 +522,7 @@ public final class SimPlayer {
             case "getAttribute": return attribute((Attribute) a[0]);
             case "getGameMode": return gameMode;
             case "hasActiveItem", "isHandRaised": return usingItem;
-            case "getActiveItem": return item(usingItem ? mainHand : Material.AIR);
+            case "getActiveItem": return item(usingItem ? held() : Material.AIR);
             case "getActiveItemUsedTime": return usingItem ? useTicks : 0;
             case "getActiveItemRemainingTime": return usingItem ? Math.max(0, 72000 - useTicks) : 0;
             case "isBlocking": return blocking;
@@ -391,6 +535,11 @@ public final class SimPlayer {
             case "getFallDistance": return (float) sFall;
             case "setFallDistance": sFall = ((Number) a[0]).doubleValue(); return null;
             case "hasGravity": return gravity;
+            case "isInsideVehicle": return vehicle != null;
+            case "getVehicle": return vehicle == null ? null : vehicle.entity;
+            case "hasPotionEffect": return a[0] instanceof org.bukkit.potion.PotionEffectType type && effects.contains(type.getKey().getKey());
+            case "isFlying": return sFlying;
+            case "getAllowFlight": return allowFlight;
             case "isInWater": return world.type((int) Math.floor(sx), (int) Math.floor(sy), (int) Math.floor(sz)) == Material.WATER;
             case "isInLava": return world.type((int) Math.floor(sx), (int) Math.floor(sy), (int) Math.floor(sz)) == Material.LAVA;
             case "hasPermission": return a[0] instanceof String s && permissions.contains(s);
@@ -405,6 +554,7 @@ public final class SimPlayer {
                 return hit == null ? null : hit.getHitBlock();
             }
             case "teleport", "teleportAsync": {
+                astralTeleports++;
                 Location location = (Location) a[0];
                 Sim.current().teleport(this, location);
                 return true;
@@ -456,7 +606,9 @@ public final class SimPlayer {
     private PlayerInventory inventory() {
         if (inventory == null) {
             inventory = Sim.mock(PlayerInventory.class, invocation -> switch (invocation.getMethod().getName()) {
-                case "getItemInMainHand" -> item(mainHand);
+                case "getItemInMainHand" -> item(held());
+                case "getItem" -> invocation.getArguments().length == 1 && invocation.getArguments()[0] instanceof Integer i
+                        ? item(i >= 0 && i < 9 && hotbar[i] != null ? hotbar[i] : Material.AIR) : null;
                 case "getItemInOffHand" -> item(Material.AIR);
                 case "getHeldItemSlot" -> slot;
                 default -> Mockito.RETURNS_DEFAULTS.answer(invocation);

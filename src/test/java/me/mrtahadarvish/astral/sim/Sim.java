@@ -41,7 +41,10 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.event.entity.EntityDismountEvent;
+import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.entity.EntityResurrectEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -324,9 +327,13 @@ public final class Sim {
         call(new PlayerArmSwingEvent(player.player, EquipmentSlot.HAND));
     }
 
-    public void slot(SimPlayer player, int slot) {
-        call(new PlayerItemHeldEvent(player.player, player.slot, slot));
-        player.slot = slot;
+    /** Hotbar slot change. Returns false when Astral cancelled it (the server keeps the old slot). */
+    public boolean slot(SimPlayer player, int slot) {
+        PlayerItemHeldEvent event = call(new PlayerItemHeldEvent(player.player, player.slot, slot));
+        if (!event.isCancelled()) {
+            player.slot = slot;
+        }
+        return !event.isCancelled();
     }
 
     public void useItem(SimPlayer player) {
@@ -335,6 +342,79 @@ public final class Sim {
 
     public void velocity(SimPlayer player, Vector velocity) {
         call(new PlayerVelocityEvent(player.player, velocity));
+    }
+
+    // ------------------------------------------------------------------ minigame plugin actions
+
+    /** A plugin puts the player on a vehicle (bus seat, boat ...). */
+    public void mount(SimPlayer player, SimEntity vehicle) {
+        call(new EntityMountEvent(player.player, vehicle.entity));
+        player.vehicle = vehicle;
+        vehicle.passengers.add(player.player);
+        player.ride(vehicle.x, vehicle.y + vehicle.height, vehicle.z);
+    }
+
+    /** The player leaves the vehicle: Paper teleports him to the dismount position. */
+    public void dismount(SimPlayer player, Location to) {
+        SimEntity vehicle = player.vehicle;
+        call(new EntityDismountEvent(player.player, vehicle.entity));
+        vehicle.passengers.remove(player.player);
+        player.vehicle = null;
+        teleport(player, to);
+    }
+
+    public void glide(SimPlayer player, boolean gliding) {
+        call(new EntityToggleGlideEvent(player.player, gliding));
+        player.gliding = gliding;
+    }
+
+    /** A plugin adds / removes a potion effect: the client gets it half a round trip later. */
+    public void effect(SimPlayer player, String key, boolean on) {
+        if (on) {
+            player.effects.add(key);
+        } else {
+            player.effects.remove(key);
+        }
+        player.later(player.halfRtt(), () -> {
+            if (on) {
+                player.clientEffects.add(key);
+            } else {
+                player.clientEffects.remove(key);
+            }
+        });
+    }
+
+    /** Entity#setGravity from a plugin (also reaches the client later). */
+    public void gravity(SimPlayer player, boolean on) {
+        player.gravity = on;
+        player.later(player.halfRtt(), () -> player.clientGravity = on);
+    }
+
+    /** Player#setVelocity from a plugin: event now, the client applies it later. */
+    public void push(SimPlayer player, Vector velocity) {
+        call(new PlayerVelocityEvent(player.player, velocity.clone()));
+        Vector v = velocity.clone();
+        player.later(player.halfRtt(), () -> {
+            player.mx = v.getX();
+            player.my = v.getY();
+            player.mz = v.getZ();
+        });
+    }
+
+    public void gameMode(SimPlayer player, org.bukkit.GameMode mode) {
+        call(new org.bukkit.event.player.PlayerGameModeChangeEvent(player.player, mode));
+        player.gameMode = mode;
+    }
+
+    /** The client asks to start / stop flying (double jump). Returns false when a plugin cancelled it. */
+    public boolean toggleFlight(SimPlayer player, boolean flying, boolean pluginCancels) {
+        org.bukkit.event.player.PlayerToggleFlightEvent event = new org.bukkit.event.player.PlayerToggleFlightEvent(player.player, flying);
+        event.setCancelled(pluginCancels); // the minigame's own listener runs before Astral's MONITOR one
+        call(event);
+        if (!event.isCancelled()) {
+            player.sFlying = flying;
+        }
+        return !event.isCancelled();
     }
 
     public void totemPop(SimPlayer player) {

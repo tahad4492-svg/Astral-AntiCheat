@@ -347,6 +347,12 @@ public final class AstralCommand implements TabExecutor {
         if (!data.bypassChecks.isEmpty()) {
             send(sender, " &7Bypassed checks: &f" + String.join(", ", data.bypassChecks));
         }
+        if (data.exemptTicksLeft() > 0) {
+            send(sender, " &7Exempt (/astral exempt): &e" + (data.exemptTicksLeft() / 20) + "s left");
+        }
+        if (PlayerData.now() < data.combatLockUntil) {
+            send(sender, " &7Hits blocked: &c" + ((data.combatLockUntil - PlayerData.now()) / 20 + 1) + "s left");
+        }
         send(sender, " &7Frozen: " + (plugin.freeze().isFrozen(target) ? "&bYES" : "&fno") + " &8| &7Gamemode: &f"
                 + target.getGameMode().name().toLowerCase(Locale.ROOT));
         send(sender, " &7Total flags: &f" + data.totalFlags + " &8| &7Total VL: &c" + MathUtil.format(data.totalViolations(), 1));

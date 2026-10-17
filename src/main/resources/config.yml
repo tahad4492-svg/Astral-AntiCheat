@@ -551,8 +551,11 @@ checks:
       # share of weapon switch hits where the swap came in the same tick as the hit
       min-same-tick-ratio: 0.9
     stun-slam:
-      # mace hits exactly 1 tick after the axe broke the shield, in a row
-      in-a-row: 5
+      # Axe breaks the shield and the swap to the mace comes in the SAME tick: impossible, always blocked.
+      # Mace hit exactly 1 tick after the axe hit, this many stun slams in a row: alert
+      in-a-row: 8
+      # also block the mace hits of such a streak (very fast legit players can get 1 tick now and then)
+      block-streaks: false
 
   autofish:
     enabled: true
